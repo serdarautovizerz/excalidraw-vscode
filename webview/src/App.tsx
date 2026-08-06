@@ -338,25 +338,15 @@ export default function App(props: {
       />
       {hoverMetadata && (
         <div
-          className="element-metadata-popover"
+          className={`element-metadata-popover ${
+            theme === THEME.DARK ? "theme--dark" : ""
+          }`}
           style={{ left: hoverMetadata.x, top: hoverMetadata.y }}
         >
           <div className="element-metadata-ref">{hoverMetadata.ref}</div>
           {hoverMetadata.label && (
             <div className="element-metadata-label">{hoverMetadata.label}</div>
           )}
-          <div className="element-metadata-link">{hoverMetadata.link}</div>
-          <button
-            className="element-metadata-open"
-            onClick={() => {
-              vscode.postMessage({
-                type: "link-open",
-                url: hoverMetadata.link,
-              });
-            }}
-          >
-            Open →
-          </button>
         </div>
       )}
     </div>
