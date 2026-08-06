@@ -1,6 +1,12 @@
-import { useEffect, useState, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   CaptureUpdateAction,
+  convertToExcalidrawElements,
   Excalidraw,
   hashElementsVersion,
   loadFromBlob,
@@ -20,6 +26,17 @@ import {
   LibraryItems,
 } from "@excalidraw/excalidraw/types";
 import { vscode } from "./vscode.ts";
+import {
+  connectableAt,
+  snapToAnchor,
+  type Anchor,
+  type ConnectDraft,
+} from "./connection.ts";
+import { ConnectionLayer } from "./ConnectionLayer.tsx";
+
+// Screen-pixel tolerances for the connection UX (divided by zoom for scene units).
+const ANCHOR_HOVER_MARGIN = 8;
+const SNAP_DISTANCE = 24;
 
 interface ElementMetadata {
   ref: string;
@@ -111,10 +128,30 @@ export default function App(props: {
     null
   );
   const hoveredElementIdRef = useRef<string | null>(null);
+  const [hoverAnchorElement, setHoverAnchorElement] = useState<any | null>(null);
+  const [connect, setConnect] = useState<ConnectDraft | null>(null);
+  // The wrapper's pointerdown capture handler must see the current draft even
+  // though the DOM listener closes over an older render.
+  const connectRef = useRef<ConnectDraft | null>(null);
+  connectRef.current = connect;
+  const [, setViewportTick] = useState(0);
 
   const clearHoverMetadata = () => {
     hoveredElementIdRef.current = null;
     setHoverMetadata(null);
+  };
+
+  // Scene → viewport coordinates for overlay positioning.
+  const toViewport = (p: { x: number; y: number }) => {
+    if (!excalidrawAPI) {
+      return p;
+    }
+    const appState = excalidrawAPI.getAppState();
+    const zoom = appState.zoom.value;
+    return {
+      x: (p.x + appState.scrollX) * zoom,
+      y: (p.y + appState.scrollY) * zoom,
+    };
   };
 
   const handlePointerUpdate = ({
@@ -126,6 +163,28 @@ export default function App(props: {
       return;
     }
     const elements = excalidrawAPI.getSceneElements();
+    const pointerZoom = excalidrawAPI.getAppState().zoom.value;
+
+    if (connect) {
+      // Endpoint follows the pointer; snaps to the nearest foreign anchor.
+      setConnect({
+        ...connect,
+        pointer,
+        target: snapToAnchor(
+          elements,
+          pointer,
+          connect.sourceId,
+          SNAP_DISTANCE / pointerZoom
+        ),
+      });
+      return;
+    }
+
+    if (!props.viewModeEnabled) {
+      setHoverAnchorElement(
+        connectableAt(elements, pointer, ANCHOR_HOVER_MARGIN / pointerZoom)
+      );
+    }
     let hovered: any = null;
     for (const element of elements as readonly any[]) {
       if (!element.link || element.type === "text") {
@@ -167,6 +226,94 @@ export default function App(props: {
       y: (hovered.y + appState.scrollY) * zoom,
     });
   };
+
+  const startConnect = (anchor: Anchor) => {
+    if (!hoverAnchorElement) {
+      return;
+    }
+    clearHoverMetadata();
+    setConnect({
+      sourceId: hoverAnchorElement.id,
+      sourceAnchor: anchor,
+      pointer: { x: anchor.x, y: anchor.y },
+      target: null,
+    });
+  };
+
+  // Bind an arrow between two anchors. The skeleton converter fills in every
+  // editor-owned field; bindings are attached afterwards because the converter
+  // only links elements created in the same call, not existing scene elements.
+  const createConnection = (draft: ConnectDraft) => {
+    if (!excalidrawAPI || !draft.target) {
+      return;
+    }
+    const target = draft.target;
+    const elements = excalidrawAPI.getSceneElements();
+    const dx = target.anchor.x - draft.sourceAnchor.x;
+    const dy = target.anchor.y - draft.sourceAnchor.y;
+    const [skeleton] = convertToExcalidrawElements([
+      {
+        type: "arrow",
+        x: draft.sourceAnchor.x,
+        y: draft.sourceAnchor.y,
+        width: dx,
+        height: dy,
+      } as any,
+    ]);
+    const arrow: any = {
+      ...skeleton,
+      points: [
+        [0, 0],
+        [dx, dy],
+      ],
+      startBinding: { elementId: draft.sourceId, focus: 0, gap: 4 },
+      endBinding: { elementId: target.elementId, focus: 0, gap: 4 },
+    };
+    const boundEntry = { id: arrow.id, type: "arrow" };
+    const next = (elements as readonly any[]).map((element) =>
+      element.id === draft.sourceId || element.id === target.elementId
+        ? {
+            ...element,
+            boundElements: [...(element.boundElements ?? []), boundEntry],
+          }
+        : element
+    );
+    excalidrawAPI.updateScene({
+      elements: [...next, arrow],
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+    });
+  };
+
+  // While a connection is in progress the canvas must not see pointerdown:
+  // a snapped click completes the arrow, any other click cancels.
+  const handlePointerDownCapture = (event: ReactPointerEvent) => {
+    const draft = connectRef.current;
+    if (!draft) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (draft.target) {
+      createConnection(draft);
+    }
+    setConnect(null);
+  };
+
+  useEffect(() => {
+    if (!connect) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        setConnect(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [connect === null]);
 
   useEffect(() => {
     if (!props.dirty) {
@@ -287,11 +434,18 @@ export default function App(props: {
   }, [excalidrawAPI]);
 
   return (
-    <div className="excalidraw-wrapper">
+    <div
+      className="excalidraw-wrapper"
+      onPointerDownCapture={handlePointerDownCapture}
+    >
       <Excalidraw
         excalidrawAPI={(api) => setExcalidrawAPI(api)}
         onPointerUpdate={handlePointerUpdate}
-        onScrollChange={clearHoverMetadata}
+        onScrollChange={() => {
+          clearHoverMetadata();
+          // Overlays position off appState scroll/zoom — force a re-render.
+          setViewportTick((tick) => tick + 1);
+        }}
         UIOptions={{
           canvasActions: {
             loadScene: false,
@@ -336,6 +490,14 @@ export default function App(props: {
           });
         }}
       />
+      {!props.viewModeEnabled && excalidrawAPI && (
+        <ConnectionLayer
+          hovered={connect ? null : hoverAnchorElement}
+          connect={connect}
+          toViewport={toViewport}
+          onStartConnect={startConnect}
+        />
+      )}
       {hoverMetadata && (
         <div
           className={`element-metadata-popover ${
