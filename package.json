@@ -213,6 +213,19 @@
                             "العربية"
                         ]
                     },
+                    "excalidraw.linkOpenLocation": {
+                        "description": "Where to open workspace files referenced by element links (e.g. elements/D10.md).",
+                        "type": "string",
+                        "default": "beside",
+                        "enum": [
+                            "activeGroup",
+                            "beside"
+                        ],
+                        "enumDescriptions": [
+                            "Open linked files in the active editor group, replacing the diagram view",
+                            "Open linked files to the side, keeping the diagram visible"
+                        ]
+                    },
                     "excalidraw.workspaceLibraryPath": {
                         "scope": "window",
                         "description": "Path to the file used to store the excalidraw library (relative to workspace root). If not set, the library will be persisted in the user storage.",

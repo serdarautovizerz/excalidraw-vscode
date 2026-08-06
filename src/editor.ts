@@ -487,7 +487,12 @@ async function openLink(uri: vscode.Uri, source: vscode.Uri): Promise<void> {
     }
   }
 
+  const openBeside =
+    vscode.workspace
+      .getConfiguration("excalidraw")
+      .get<string>("linkOpenLocation", "beside") === "beside";
   await vscode.window.showTextDocument(targetUri, {
     preview: true,
+    viewColumn: openBeside ? vscode.ViewColumn.Beside : undefined,
   });
 }

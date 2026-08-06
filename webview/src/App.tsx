@@ -21,6 +21,20 @@ import {
 } from "@excalidraw/excalidraw/types";
 import { vscode } from "./vscode.ts";
 
+interface ElementMetadata {
+  ref: string;
+  label: string | null;
+  link: string;
+  x: number;
+  y: number;
+}
+
+// "elements/D10.md" -> "D10"; anything else -> null
+function refFromLink(link: string): string | null {
+  const match = /(?:^|\/)([A-Za-z]+\d+)\.md$/.exec(link);
+  return match ? match[1] : null;
+}
+
 function detectTheme() {
   switch (document.body.className) {
     case "vscode-dark":
@@ -93,6 +107,66 @@ export default function App(props: {
   const { theme, setThemeConfig } = useTheme(props.theme);
   const [imageParams, setImageParams] = useState(props.imageParams);
   const [langCode, setLangCode] = useState(props.langCode);
+  const [hoverMetadata, setHoverMetadata] = useState<ElementMetadata | null>(
+    null
+  );
+  const hoveredElementIdRef = useRef<string | null>(null);
+
+  const clearHoverMetadata = () => {
+    hoveredElementIdRef.current = null;
+    setHoverMetadata(null);
+  };
+
+  const handlePointerUpdate = ({
+    pointer,
+  }: {
+    pointer: { x: number; y: number };
+  }) => {
+    if (!excalidrawAPI) {
+      return;
+    }
+    const elements = excalidrawAPI.getSceneElements();
+    let hovered: any = null;
+    for (const element of elements as readonly any[]) {
+      if (!element.link || element.type === "text") {
+        continue;
+      }
+      if (
+        pointer.x >= element.x &&
+        pointer.x <= element.x + element.width &&
+        pointer.y >= element.y &&
+        pointer.y <= element.y + element.height
+      ) {
+        // Last match wins: highest z-order.
+        hovered = element;
+      }
+    }
+    if ((hovered?.id ?? null) === hoveredElementIdRef.current) {
+      return;
+    }
+    if (!hovered) {
+      clearHoverMetadata();
+      return;
+    }
+    const ref = refFromLink(hovered.link);
+    if (!ref) {
+      clearHoverMetadata();
+      return;
+    }
+    hoveredElementIdRef.current = hovered.id;
+    const appState = excalidrawAPI.getAppState();
+    const zoom = appState.zoom.value;
+    const boundText = (elements as readonly any[]).find(
+      (element) => element.type === "text" && element.containerId === hovered.id
+    );
+    setHoverMetadata({
+      ref,
+      label: boundText ? boundText.text : null,
+      link: hovered.link,
+      x: (hovered.x + hovered.width + appState.scrollX) * zoom + 8,
+      y: (hovered.y + appState.scrollY) * zoom,
+    });
+  };
 
   useEffect(() => {
     if (!props.dirty) {
@@ -216,6 +290,8 @@ export default function App(props: {
     <div className="excalidraw-wrapper">
       <Excalidraw
         excalidrawAPI={(api) => setExcalidrawAPI(api)}
+        onPointerUpdate={handlePointerUpdate}
+        onScrollChange={clearHoverMetadata}
         UIOptions={{
           canvasActions: {
             loadScene: false,
@@ -260,6 +336,29 @@ export default function App(props: {
           });
         }}
       />
+      {hoverMetadata && (
+        <div
+          className="element-metadata-popover"
+          style={{ left: hoverMetadata.x, top: hoverMetadata.y }}
+        >
+          <div className="element-metadata-ref">{hoverMetadata.ref}</div>
+          {hoverMetadata.label && (
+            <div className="element-metadata-label">{hoverMetadata.label}</div>
+          )}
+          <div className="element-metadata-link">{hoverMetadata.link}</div>
+          <button
+            className="element-metadata-open"
+            onClick={() => {
+              vscode.postMessage({
+                type: "link-open",
+                url: hoverMetadata.link,
+              });
+            }}
+          >
+            Open →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

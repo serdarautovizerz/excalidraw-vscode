@@ -4,8 +4,56 @@ body {
 }
 
 .excalidraw-wrapper {
+  position: relative;
   width: 100vw;
   height: 100vh;
+}
+
+.element-metadata-popover {
+  position: absolute;
+  z-index: 100;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--island-bg-color, #ffffff);
+  border: 1px solid var(--default-border-color, #d6d6d6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  color: var(--text-primary-color, #1e1e1e);
+  font-family: var(--ui-font, sans-serif);
+  font-size: 12px;
+  pointer-events: auto;
+}
+
+.element-metadata-ref {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.element-metadata-label {
+  margin-top: 2px;
+  white-space: pre-wrap;
+}
+
+.element-metadata-link {
+  margin-top: 4px;
+  opacity: 0.7;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.element-metadata-open {
+  margin-top: 6px;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 4px;
+  background: var(--color-primary, #6965db);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.element-metadata-open:hover {
+  background: var(--color-primary-darker, #5753d0);
 }
 
 kbd {
