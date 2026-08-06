@@ -91,27 +91,30 @@ async function main() {
           )
         : [undefined, config.contentType];
 
+    const isDirty = !initialData || config.contentType != initialContentType;
+
+    // Shared with App so externally applied document changes can update the
+    // version without echoing a "change" message back to VS Code.
+    const sceneVersionRef = {
+      current: isDirty ? -1 : hashElementsVersion(initialData.elements || []),
+    };
+
     const sendChanges = sendChangesToVSCode(config.contentType);
     const debouncedOnChange = (
       onChange: (
         elements: readonly any[],
         appState: Partial<AppState>,
         files: BinaryFiles
-      ) => void,
-      initialVersion: number
+      ) => void
     ) => {
-      let previousVersion = initialVersion;
-
       return _.debounce((elements, appState, files) => {
         const currentVersion = hashElementsVersion(elements);
-        if (currentVersion !== previousVersion) {
-          previousVersion = currentVersion;
+        if (currentVersion !== sceneVersionRef.current) {
+          sceneVersionRef.current = currentVersion;
           onChange(elements, appState, files);
         }
       }, 250);
     };
-
-    const isDirty = !initialData || config.contentType != initialContentType;
     ReactDOM.render(
       <React.StrictMode>
         <App
@@ -122,10 +125,8 @@ async function main() {
           name={config.name}
           viewModeEnabled={config.viewModeEnabled}
           theme={config.theme}
-          onChange={debouncedOnChange(
-            sendChanges,
-            isDirty ? -1 : hashElementsVersion(initialData.elements || [])
-          )}
+          onChange={debouncedOnChange(sendChanges)}
+          sceneVersionRef={sceneVersionRef}
           imageParams={config.imageParams}
           langCode={config.langCode}
           dirty={isDirty}

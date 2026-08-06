@@ -6,7 +6,12 @@ interface FocusElementMessage {
   ref: string;
 }
 
-export type BridgeMessage = FocusElementMessage;
+interface DocumentChangeMessage {
+  type: "document-change";
+  content: number[];
+}
+
+export type BridgeMessage = FocusElementMessage | DocumentChangeMessage;
 
 /**
  * Bridge between VS Code (commands, URI handler, external automation) and the

@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import {
+  CaptureUpdateAction,
   Excalidraw,
+  hashElementsVersion,
+  loadFromBlob,
   loadLibraryFromBlob,
   serializeLibraryAsJSON,
   THEME,
@@ -83,6 +86,7 @@ export default function App(props: {
     appState: Partial<AppState>,
     files?: BinaryFiles
   ) => void;
+  sceneVersionRef: { current: number };
 }) {
   const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI>();
   const libraryItemsRef = useRef(props.libraryItems);
@@ -136,6 +140,27 @@ export default function App(props: {
           }
           case "image-params-change": {
             setImageParams(message.imageParams);
+            break;
+          }
+          case "document-change": {
+            if (!excalidrawAPI) {
+              return;
+            }
+            const blob = new Blob(
+              [new TextDecoder().decode(new Uint8Array(message.content))],
+              { type: "application/json" }
+            );
+            const scene = await loadFromBlob(blob, null, null);
+            const elements = scene.elements || [];
+            // Prevent the change from echoing back to VS Code as an edit.
+            props.sceneVersionRef.current = hashElementsVersion(elements);
+            excalidrawAPI.updateScene({
+              elements,
+              captureUpdate: CaptureUpdateAction.NEVER,
+            });
+            if (scene.files) {
+              excalidrawAPI.addFiles(Object.values(scene.files));
+            }
             break;
           }
           case "focus-element": {

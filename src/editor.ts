@@ -262,6 +262,34 @@ export class ExcalidrawEditor {
       }
     );
 
+    // Live-reload the scene when the file changes on disk (e.g. edited by the
+    // AutoVizerz diagram MCP or a git operation) while the editor is open.
+    let watcher: vscode.FileSystemWatcher | undefined;
+    if (
+      this.document.uri.scheme === "file" &&
+      this.document.contentType === "application/json" &&
+      !this.isViewOnly()
+    ) {
+      watcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(
+          vscode.Uri.joinPath(this.document.uri, ".."),
+          path.basename(this.document.uri.fsPath)
+        )
+      );
+      watcher.onDidChange(async () => {
+        const content = await vscode.workspace.fs.readFile(this.document.uri);
+        if (contentEquals(content, this.document.content)) {
+          // Our own save, or nothing actually changed.
+          return;
+        }
+        this.document.content = content;
+        this.postMessage({
+          type: "document-change",
+          content: Array.from(content),
+        });
+      });
+    }
+
     this.webview.html = await this.buildHtmlForWebview({
       content: Array.from(this.document.content),
       contentType: this.document.contentType,
@@ -280,6 +308,7 @@ export class ExcalidrawEditor {
       onDidChangeLibraryConfiguration.dispose();
       onDidChangeLibrary.dispose();
       onDidChangeEmbedConfiguration.dispose();
+      watcher?.dispose();
     });
   }
 
@@ -397,6 +426,18 @@ export class ExcalidrawEditor {
       }
     );
   }
+}
+
+function contentEquals(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function getFileWorkspaceFolder(
