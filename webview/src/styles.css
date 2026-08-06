@@ -48,19 +48,19 @@ body {
   margin: -5px 0 0 -5px;
   border-radius: 50%;
   background: #ffffff;
-  border: 2px solid #6965db;
+  border: 2px solid var(--av-accent, #6965db);
   cursor: crosshair;
   box-sizing: border-box;
 }
 
 .connection-anchor:hover {
   transform: scale(1.35);
-  background: #6965db;
+  background: var(--av-accent, #6965db);
 }
 
 .connection-anchor--active,
 .connection-anchor--snap {
-  background: #6965db;
+  background: var(--av-accent, #6965db);
   pointer-events: none;
 }
 
@@ -78,13 +78,13 @@ body {
 }
 
 .connection-preview line {
-  stroke: #6965db;
+  stroke: var(--av-accent, #6965db);
   stroke-width: 2;
   stroke-dasharray: 6 4;
 }
 
 .connection-preview polygon {
-  fill: #6965db;
+  fill: var(--av-accent, #6965db);
 }
 
 kbd {

@@ -201,6 +201,19 @@ export class ExcalidrawEditor {
         });
       }, this);
 
+    const onDidChangeVisualThemeConfiguration =
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (
+          !e.affectsConfiguration("excalidraw.visualTheme", this.document.uri)
+        ) {
+          return;
+        }
+        this.webview.postMessage({
+          type: "visual-theme-change",
+          visualTheme: this.getVisualTheme(),
+        });
+      }, this);
+
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration("excalidraw.language", this.document.uri)) {
         return;
@@ -296,6 +309,7 @@ export class ExcalidrawEditor {
       library: await this.loadLibrary(libraryUri),
       viewModeEnabled: this.isViewOnly() || undefined,
       theme: this.getTheme(),
+      visualTheme: this.getVisualTheme(),
       imageParams: this.getImageParams(),
       langCode: this.getLanguage(),
       name: this.extractName(this.document.uri),
@@ -304,6 +318,7 @@ export class ExcalidrawEditor {
     return new vscode.Disposable(() => {
       onDidReceiveMessage.dispose();
       onDidChangeThemeConfiguration.dispose();
+      onDidChangeVisualThemeConfiguration.dispose();
       onLibraryImport.dispose();
       onDidChangeLibraryConfiguration.dispose();
       onDidChangeLibrary.dispose();
@@ -327,6 +342,12 @@ export class ExcalidrawEditor {
     return vscode.workspace
       .getConfiguration("excalidraw")
       .get("theme", "light");
+  }
+
+  private getVisualTheme() {
+    return vscode.workspace
+      .getConfiguration("excalidraw")
+      .get("visualTheme", "classic");
   }
 
   public extractName(uri: vscode.Uri) {

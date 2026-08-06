@@ -2,6 +2,7 @@ import {
   useEffect,
   useState,
   useRef,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
@@ -33,6 +34,7 @@ import {
   type ConnectDraft,
 } from "./connection.ts";
 import { ConnectionLayer } from "./ConnectionLayer.tsx";
+import { resolveVisualTheme } from "./themes.ts";
 
 // Screen-pixel tolerances for the connection UX (divided by zoom for scene units).
 const ANCHOR_HOVER_MARGIN = 8;
@@ -103,6 +105,7 @@ export default function App(props: {
   initialData?: ExcalidrawInitialDataState;
   name: string;
   theme: string;
+  visualTheme: string;
   langCode: string;
   viewModeEnabled: boolean;
   libraryItems?: LibraryItems;
@@ -129,6 +132,10 @@ export default function App(props: {
   );
   const hoveredElementIdRef = useRef<string | null>(null);
   const [hoverAnchorElement, setHoverAnchorElement] = useState<any | null>(null);
+  const [visualThemeId, setVisualThemeId] = useState(props.visualTheme);
+  // Upstream item defaults captured before the first themed override, so the
+  // classic theme can restore them exactly instead of guessing.
+  const baselineItemDefaultsRef = useRef<Record<string, unknown> | null>(null);
   const [connect, setConnect] = useState<ConnectDraft | null>(null);
   // The wrapper's pointerdown capture handler must see the current draft even
   // though the DOM listener closes over an older render.
@@ -299,6 +306,31 @@ export default function App(props: {
     setConnect(null);
   };
 
+  // Apply the visual theme's item defaults (Theme ⊥ Behavior: looks only).
+  useEffect(() => {
+    if (!excalidrawAPI) {
+      return;
+    }
+    const visualTheme = resolveVisualTheme(visualThemeId);
+    const appState = excalidrawAPI.getAppState() as any;
+    if (!baselineItemDefaultsRef.current) {
+      baselineItemDefaultsRef.current = {
+        currentItemRoundness: appState.currentItemRoundness,
+        currentItemStrokeWidth: appState.currentItemStrokeWidth,
+        currentItemFontFamily: appState.currentItemFontFamily,
+        currentItemArrowType: appState.currentItemArrowType,
+        currentItemStrokeColor: appState.currentItemStrokeColor,
+        currentItemBackgroundColor: appState.currentItemBackgroundColor,
+      };
+    }
+    excalidrawAPI.updateScene({
+      appState: {
+        ...baselineItemDefaultsRef.current,
+        ...visualTheme.currentItem,
+      } as any,
+    });
+  }, [excalidrawAPI, visualThemeId]);
+
   useEffect(() => {
     if (!connect) {
       return;
@@ -353,6 +385,10 @@ export default function App(props: {
           }
           case "theme-change": {
             setThemeConfig(message.theme);
+            break;
+          }
+          case "visual-theme-change": {
+            setVisualThemeId(message.visualTheme);
             break;
           }
           case "language-change": {
@@ -433,9 +469,20 @@ export default function App(props: {
     };
   }, [excalidrawAPI]);
 
+  const accentColor = resolveVisualTheme(visualThemeId).accentColor;
+
   return (
     <div
       className="excalidraw-wrapper"
+      data-visual-theme={visualThemeId}
+      style={
+        accentColor
+          ? ({
+              "--av-accent": accentColor,
+              "--color-selection": accentColor,
+            } as CSSProperties)
+          : undefined
+      }
       onPointerDownCapture={handlePointerDownCapture}
     >
       <Excalidraw

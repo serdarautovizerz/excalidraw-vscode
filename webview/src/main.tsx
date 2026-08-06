@@ -125,6 +125,7 @@ async function main() {
           name={config.name}
           viewModeEnabled={config.viewModeEnabled}
           theme={config.theme}
+          visualTheme={config.visualTheme}
           onChange={debouncedOnChange(sendChanges)}
           sceneVersionRef={sceneVersionRef}
           imageParams={config.imageParams}

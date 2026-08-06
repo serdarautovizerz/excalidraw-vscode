@@ -3,7 +3,7 @@
     "icon": "assets/logo.png",
     "displayName": "Excalidraw",
     "description": "Draw schemas in VS Code using Excalidraw",
-    "version": "3.99.1",
+    "version": "3.99.2",
     "publisher": "pomdtr",
     "engines": {
         "vscode": "^1.63.0"
@@ -117,6 +117,23 @@
                             "auto",
                             "light",
                             "dark"
+                        ]
+                    },
+                    "excalidraw.visualTheme": {
+                        "description": "Visual theme for diagrams: defaults applied to newly drawn elements and accent colors. Independent of light/dark (excalidraw.theme) and of interaction behavior.",
+                        "type": "string",
+                        "default": "classic",
+                        "enum": [
+                            "classic",
+                            "modern",
+                            "figjam",
+                            "autovizerz"
+                        ],
+                        "enumDescriptions": [
+                            "Upstream Excalidraw exactly as shipped",
+                            "Clean technical diagrams: thin strokes, straight text, soft corners",
+                            "Inspired by FigJam's interaction patterns — original identity, not a clone",
+                            "AutoVizerz brand look for the state-machine diagrams"
                         ]
                     },
                     "excalidraw.language": {
