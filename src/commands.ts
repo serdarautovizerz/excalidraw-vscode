@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { newUntitledExcalidrawDocument } from "./utils";
+import { ExcalidrawBridge } from "./bridge";
 
 function getConfigurationScope(
   config: vscode.WorkspaceConfiguration,
@@ -101,6 +103,48 @@ async function newFile() {
   }
 }
 
+function resolveFileArg(file: string): vscode.Uri {
+  if (path.isAbsolute(file)) {
+    return vscode.Uri.file(file);
+  }
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) {
+    return vscode.Uri.file(file);
+  }
+  return vscode.Uri.joinPath(workspaceFolder.uri, file);
+}
+
+async function focusElement(args?: string | { ref?: string; file?: string }) {
+  let ref: string | undefined;
+  let file: string | undefined;
+  if (typeof args === "string") {
+    ref = args;
+  } else if (args) {
+    ref = args.ref;
+    file = args.file;
+  }
+
+  if (!ref) {
+    ref = await vscode.window.showInputBox({
+      prompt: "Element reference (e.g. D10, N15) or element ID",
+      placeHolder: "D10",
+    });
+  }
+  if (!ref) {
+    return;
+  }
+
+  const uri = file ? resolveFileArg(file) : undefined;
+  const focused = await ExcalidrawBridge.focusElement(ref, uri);
+  if (!focused) {
+    vscode.window.showErrorMessage(
+      uri
+        ? `Failed to open an Excalidraw editor for ${uri.fsPath}`
+        : "No active Excalidraw editor to focus an element in"
+    );
+  }
+}
+
 export function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("excalidraw.newFile", newFile)
@@ -137,5 +181,8 @@ export function registerCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand("excalidraw.preventDefault", () => {})
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("excalidraw.focusElement", focusElement)
   );
 }

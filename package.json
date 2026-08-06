@@ -97,6 +97,12 @@
                 "category": "Excalidraw",
                 "title": "Open Image to the Side",
                 "icon": "$(go-to-file)"
+            },
+            {
+                "command": "excalidraw.focusElement",
+                "category": "Excalidraw",
+                "title": "Focus Element",
+                "icon": "$(search)"
             }
         ],
         "configuration": [
@@ -292,6 +298,10 @@
                 {
                     "command": "excalidraw.showImageToSide",
                     "when": "false"
+                },
+                {
+                    "command": "excalidraw.focusElement",
+                    "when": "activeCustomEditorId == 'editor.excalidraw'"
                 }
             ],
             "editor/title": [

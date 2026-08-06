@@ -136,6 +136,41 @@ export default function App(props: {
           }
           case "image-params-change": {
             setImageParams(message.imageParams);
+            break;
+          }
+          case "focus-element": {
+            if (!excalidrawAPI) {
+              return;
+            }
+            const ref: string = message.ref;
+            const elements = excalidrawAPI.getSceneElements();
+            const matched = elements.filter(
+              (element: any) =>
+                element.id === ref ||
+                (typeof element.link === "string" &&
+                  (element.link === `elements/${ref}.md` ||
+                    element.link.endsWith(`/${ref}.md`)))
+            );
+            if (matched.length === 0) {
+              vscode.postMessage({
+                type: "info",
+                content: `Element "${ref}" was not found in this diagram`,
+              });
+              return;
+            }
+            excalidrawAPI.updateScene({
+              appState: {
+                selectedElementIds: Object.fromEntries(
+                  matched.map((element: any) => [element.id, true])
+                ),
+              },
+            });
+            excalidrawAPI.scrollToContent(matched, {
+              fitToViewport: false,
+              animate: true,
+              duration: 300,
+            });
+            break;
           }
         }
       } catch (e) {

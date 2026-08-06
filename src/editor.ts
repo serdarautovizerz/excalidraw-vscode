@@ -5,6 +5,7 @@ import { Base64 } from "js-base64";
 import { ExcalidrawDocument } from "./document";
 import { languageMap } from "./lang";
 import { showEditor } from "./commands";
+import { ExcalidrawBridge, BridgeMessage } from "./bridge";
 
 export class ExcalidrawEditorProvider
   implements vscode.CustomEditorProvider<ExcalidrawDocument>
@@ -62,8 +63,10 @@ export class ExcalidrawEditorProvider
       this.context
     );
     const editorDisposable = await editor.setupWebview();
+    const bridgeDisposable = ExcalidrawBridge.register(editor, webviewPanel);
 
     webviewPanel.onDidDispose(() => {
+      bridgeDisposable.dispose();
       editorDisposable.dispose();
     });
   }
@@ -147,6 +150,10 @@ export class ExcalidrawEditor {
       this.document.uri.scheme === "git" ||
       this.document.uri.scheme === "conflictResolution"
     );
+  }
+
+  public postMessage(message: BridgeMessage) {
+    this.webview.postMessage(message);
   }
 
   public async setupWebview() {
