@@ -9,7 +9,7 @@ export class ExcalidrawUriHandler implements vscode.UriHandler {
   }
 
   public async handleUri(uri: vscode.Uri) {
-    // vscode://pomdtr.excalidraw-editor/focus?element=D10&file=diagram.excalidraw
+    // vscode://autovizerz.excalidraw-editor/focus?element=D10&file=diagram.excalidraw
     if (uri.path === "/focus") {
       const query = new URLSearchParams(uri.query);
       const ref = query.get("element");

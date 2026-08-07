@@ -1,10 +1,10 @@
 {
     "name": "excalidraw-editor",
     "icon": "assets/logo.png",
-    "displayName": "Excalidraw",
-    "description": "Draw schemas in VS Code using Excalidraw",
-    "version": "3.99.3",
-    "publisher": "pomdtr",
+    "displayName": "Excalidraw (AutoVizerz)",
+    "description": "Draw schemas in VS Code using Excalidraw — AutoVizerz customized fork",
+    "version": "1.0.0",
+    "publisher": "autovizerz",
     "engines": {
         "vscode": "^1.63.0"
     },
@@ -19,9 +19,8 @@
         "excalidraw"
     ],
     "author": {
-        "name": "pomdtr",
-        "email": "achille.lacoin@gmail.com",
-        "url": "https://github.com/pomdtr"
+        "name": "AutoVizerz",
+        "url": "https://github.com/serdarautovizerz"
     },
     "activationEvents": [
         "onUri",
@@ -29,7 +28,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/excalidraw/excalidraw-vscode"
+        "url": "https://github.com/serdarautovizerz/excalidraw-vscode"
     },
     "browser": "./dist/extension.js",
     "contributes": {
@@ -119,6 +118,11 @@
                             "light",
                             "dark"
                         ]
+                    },
+                    "excalidraw.enableCustomFeatures": {
+                        "description": "Enable AutoVizerz UX features: connection anchors and quick connect, hover tooltips, native link-icon hiding, visual theme restyling, focus highlighting, and viewport restore. Deep links (focus element) and file hot reload remain active when disabled.",
+                        "type": "boolean",
+                        "default": true
                     },
                     "excalidraw.visualTheme": {
                         "description": "Visual theme for diagrams: defaults applied to newly drawn elements and accent colors. Independent of light/dark (excalidraw.theme) and of interaction behavior.",
@@ -425,6 +429,7 @@
         "@typescript-eslint/eslint-plugin": "^5.40.0",
         "@typescript-eslint/parser": "^5.40.0",
         "@vscode/test-web": "*",
+        "@vscode/vsce": "^3.6.0",
         "eslint": "^8.25.0",
         "eslint-config-prettier": "^8.5.0",
         "eslint-plugin-prettier": "^4.2.1",

@@ -11,7 +11,16 @@ interface DocumentChangeMessage {
   content: number[];
 }
 
-export type BridgeMessage = FocusElementMessage | DocumentChangeMessage;
+interface ApplyElementLinkMessage {
+  type: "apply-element-link";
+  elementId: string;
+  link: string;
+}
+
+export type BridgeMessage =
+  | FocusElementMessage
+  | DocumentChangeMessage
+  | ApplyElementLinkMessage;
 
 /**
  * Bridge between VS Code (commands, URI handler, external automation) and the

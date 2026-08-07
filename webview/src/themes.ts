@@ -5,6 +5,38 @@
 
 export type VisualThemeId = "classic" | "modern" | "figjam" | "autovizerz";
 
+// Style overrides applied to EXISTING elements when a theme is active.
+// Only the listed keys are touched; originals are snapshotted per element in
+// customData.avBaseStyle so the classic theme can restore them exactly.
+interface ShapeStyle {
+  strokeColor?: string;
+  backgroundColor?: string;
+  fillStyle?: string;
+  strokeWidth?: number;
+  roughness?: number;
+  roundness?: { type: number } | null;
+}
+
+interface ArrowStyle {
+  strokeColor?: string;
+  strokeWidth?: number;
+  roughness?: number;
+  roundness?: { type: number } | null;
+  endArrowhead?: string;
+}
+
+interface TextStyle {
+  strokeColor?: string;
+  fontFamily?: number;
+}
+
+export interface ElementStyles {
+  shape?: ShapeStyle;
+  byType?: Partial<Record<"rectangle" | "diamond" | "ellipse", ShapeStyle>>;
+  arrow?: ArrowStyle;
+  text?: TextStyle;
+}
+
 export interface VisualTheme {
   id: VisualThemeId;
   // Defaults for newly drawn elements; merged into appState. Empty for the
@@ -19,6 +51,9 @@ export interface VisualTheme {
   };
   // Accent for selection outline and connection anchors (CSS layer).
   accentColor?: string;
+  // Restyle rules for elements already on the canvas. Absent for classic,
+  // which instead restores each element's snapshotted base style.
+  elementStyles?: ElementStyles;
 }
 
 // Excalidraw FONT_FAMILY values: 2 = Helvetica, 6 = Nunito.
@@ -39,6 +74,22 @@ export const VISUAL_THEMES: Record<VisualThemeId, VisualTheme> = {
       currentItemStrokeColor: "#1e1e1e",
     },
     accentColor: "#4c6ef5",
+    elementStyles: {
+      shape: {
+        strokeColor: "#1e1e1e",
+        strokeWidth: 1,
+        roughness: 0,
+        roundness: { type: 3 },
+      },
+      arrow: {
+        strokeColor: "#1e1e1e",
+        strokeWidth: 1,
+        roughness: 0,
+        roundness: { type: 2 },
+        endArrowhead: "arrow",
+      },
+      text: { fontFamily: 2 },
+    },
   },
   // Inspired by FigJam's interaction patterns — original identity, not a clone.
   figjam: {
@@ -52,6 +103,28 @@ export const VISUAL_THEMES: Record<VisualThemeId, VisualTheme> = {
       currentItemBackgroundColor: "#e7f5ff",
     },
     accentColor: "#ae3ec9",
+    elementStyles: {
+      shape: {
+        strokeColor: "#343a40",
+        backgroundColor: "#e7f5ff",
+        fillStyle: "solid",
+        strokeWidth: 2,
+        roughness: 0,
+        roundness: { type: 3 },
+      },
+      byType: {
+        diamond: { backgroundColor: "#fff9db" },
+        ellipse: { backgroundColor: "#e6fcf5" },
+      },
+      arrow: {
+        strokeColor: "#343a40",
+        strokeWidth: 2,
+        roughness: 0,
+        roundness: { type: 2 },
+        endArrowhead: "triangle",
+      },
+      text: { strokeColor: "#343a40", fontFamily: 6 },
+    },
   },
   // AutoVizerz brand look for the state-machine diagrams.
   autovizerz: {
@@ -65,8 +138,167 @@ export const VISUAL_THEMES: Record<VisualThemeId, VisualTheme> = {
       currentItemBackgroundColor: "#e0f2fe",
     },
     accentColor: "#0e7490",
+    elementStyles: {
+      shape: {
+        strokeColor: "#0f172a",
+        backgroundColor: "#e0f2fe",
+        fillStyle: "solid",
+        strokeWidth: 2,
+        roundness: { type: 3 },
+      },
+      byType: {
+        diamond: { backgroundColor: "#fef9c3" },
+        ellipse: { backgroundColor: "#dcfce7" },
+      },
+      arrow: {
+        strokeColor: "#0e7490",
+        strokeWidth: 2,
+        roundness: { type: 2 },
+        endArrowhead: "arrow",
+      },
+      text: { fontFamily: 2 },
+    },
   },
 };
+
+// ─── Restyle engine ──────────────────────────────────────────────────────────
+
+const SHAPE_TYPES = new Set(["rectangle", "diamond", "ellipse"]);
+
+const SHAPE_STYLE_KEYS = [
+  "strokeColor",
+  "backgroundColor",
+  "fillStyle",
+  "strokeWidth",
+  "strokeStyle",
+  "roughness",
+  "roundness",
+] as const;
+const ARROW_STYLE_KEYS = [
+  "strokeColor",
+  "strokeWidth",
+  "strokeStyle",
+  "roughness",
+  "roundness",
+  "endArrowhead",
+] as const;
+const TEXT_STYLE_KEYS = ["strokeColor", "fontFamily"] as const;
+
+function styleKeysFor(element: any): readonly string[] | null {
+  if (SHAPE_TYPES.has(element.type)) {
+    return SHAPE_STYLE_KEYS;
+  }
+  if (element.type === "arrow") {
+    return ARROW_STYLE_KEYS;
+  }
+  if (element.type === "text") {
+    return TEXT_STYLE_KEYS;
+  }
+  return null;
+}
+
+function targetStyleFor(
+  element: any,
+  styles: ElementStyles
+): Record<string, unknown> | null {
+  if (SHAPE_TYPES.has(element.type)) {
+    const byType = styles.byType?.[element.type as "rectangle"];
+    return styles.shape || byType ? { ...styles.shape, ...byType } : null;
+  }
+  if (element.type === "arrow") {
+    return styles.arrow ? { ...styles.arrow } : null;
+  }
+  if (element.type === "text") {
+    return styles.text ? { ...styles.text } : null;
+  }
+  return null;
+}
+
+function sameStyleValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
+function bumpVersion(element: any): any {
+  return {
+    ...element,
+    version: (element.version ?? 1) + 1,
+    versionNonce: Math.floor(Math.random() * 2 ** 31),
+    updated: Date.now(),
+  };
+}
+
+/**
+ * Restyle existing elements for a theme, snapshotting each element's original
+ * style into customData.avBaseStyle the first time it is themed. The classic
+ * theme (or a disabled feature gate) restores the snapshot and removes it.
+ * Elements first drawn under a theme have that look snapshotted as their base.
+ * Returns the new element array, or null when nothing changed (idempotent, so
+ * repeated application never causes save loops).
+ */
+export function applyVisualThemeToElements(
+  elements: readonly any[],
+  theme: VisualTheme
+): any[] | null {
+  let changed = false;
+  const next = elements.map((element: any) => {
+    if (element.isDeleted) {
+      return element;
+    }
+    const keys = styleKeysFor(element);
+    if (!keys) {
+      return element;
+    }
+
+    if (theme.id === "classic" || !theme.elementStyles) {
+      const base = element.customData?.avBaseStyle;
+      if (!base) {
+        return element;
+      }
+      const restored: any = { ...element };
+      for (const key of keys) {
+        if (key in base) {
+          restored[key] = base[key];
+        }
+      }
+      const customData = { ...element.customData };
+      delete customData.avBaseStyle;
+      delete customData.avTheme;
+      restored.customData = Object.keys(customData).length
+        ? customData
+        : undefined;
+      changed = true;
+      return bumpVersion(restored);
+    }
+
+    const target = targetStyleFor(element, theme.elementStyles);
+    if (!target || Object.keys(target).length === 0) {
+      return element;
+    }
+    const alreadyThemed =
+      element.customData?.avTheme === theme.id &&
+      Object.entries(target).every(([key, value]) =>
+        sameStyleValue(element[key], value)
+      );
+    if (alreadyThemed) {
+      return element;
+    }
+    const base =
+      element.customData?.avBaseStyle ??
+      Object.fromEntries(keys.map((key) => [key, element[key] ?? null]));
+    const styled: any = {
+      ...element,
+      ...target,
+      customData: {
+        ...element.customData,
+        avBaseStyle: base,
+        avTheme: theme.id,
+      },
+    };
+    changed = true;
+    return bumpVersion(styled);
+  });
+  return changed ? next : null;
+}
 
 export function resolveVisualTheme(id: string | undefined): VisualTheme {
   return VISUAL_THEMES[(id as VisualThemeId) ?? "classic"] ?? VISUAL_THEMES.classic;

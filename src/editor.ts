@@ -6,6 +6,25 @@ import { ExcalidrawDocument } from "./document";
 import { languageMap } from "./lang";
 import { showEditor } from "./commands";
 import { ExcalidrawBridge, BridgeMessage } from "./bridge";
+import { allocateArrowRef } from "./refs";
+
+// Viewport sidecar (<file>.viewport.json): written beside the diagram so the
+// AutoVizerz diagram MCP can place add_element at the current viewport center
+// and so the viewport can be restored when the file is reopened.
+interface ViewportState {
+  scrollX: number;
+  scrollY: number;
+  zoom: number;
+  center: { x: number; y: number };
+  width: number;
+  height: number;
+}
+
+const VIEWPORT_WRITE_DEBOUNCE_MS = 500;
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
 
 export class ExcalidrawEditorProvider
   implements vscode.CustomEditorProvider<ExcalidrawDocument>
@@ -40,7 +59,7 @@ export class ExcalidrawEditorProvider
           type: "excalidrawlib",
           version: 2,
           source:
-            "https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor",
+            "https://marketplace.visualstudio.com/items?itemName=autovizerz.excalidraw-editor",
           libraryItems,
         })
       )
@@ -145,6 +164,113 @@ export class ExcalidrawEditor {
     readonly context: vscode.ExtensionContext
   ) {}
 
+  private pendingViewport: ViewportState | undefined;
+  private viewportWriteTimer: ReturnType<typeof setTimeout> | undefined;
+
+  private get viewportSidecarUri(): vscode.Uri {
+    return this.document.uri.with({
+      path: this.document.uri.path + ".viewport.json",
+    });
+  }
+
+  private scheduleViewportWrite(viewport: ViewportState) {
+    this.pendingViewport = viewport;
+    if (this.viewportWriteTimer) {
+      clearTimeout(this.viewportWriteTimer);
+    }
+    this.viewportWriteTimer = setTimeout(() => {
+      this.viewportWriteTimer = undefined;
+      this.flushViewportWrite();
+    }, VIEWPORT_WRITE_DEBOUNCE_MS);
+  }
+
+  private flushViewportWrite() {
+    const viewport = this.pendingViewport;
+    if (!viewport) {
+      return;
+    }
+    this.pendingViewport = undefined;
+    const payload = {
+      file: this.document.uri.fsPath,
+      center: viewport.center,
+      zoom: viewport.zoom,
+      scrollX: viewport.scrollX,
+      scrollY: viewport.scrollY,
+      updatedAt: new Date().toISOString(),
+    };
+    // Fire and forget — a sidecar write must never surface an error.
+    vscode.workspace.fs
+      .writeFile(
+        this.viewportSidecarUri,
+        new TextEncoder().encode(JSON.stringify(payload, null, 2))
+      )
+      .then(undefined, () => undefined);
+  }
+
+  private async readViewportSidecar(): Promise<
+    | { scrollX: number; scrollY: number; zoom: number; center: { x: number; y: number } }
+    | undefined
+  > {
+    try {
+      const raw = this.textDecoder.decode(
+        await vscode.workspace.fs.readFile(this.viewportSidecarUri)
+      );
+      const parsed = JSON.parse(raw);
+      if (
+        isFiniteNumber(parsed?.zoom) &&
+        parsed.zoom >= 0.05 &&
+        parsed.zoom <= 30 &&
+        isFiniteNumber(parsed?.scrollX) &&
+        isFiniteNumber(parsed?.scrollY) &&
+        isFiniteNumber(parsed?.center?.x) &&
+        isFiniteNumber(parsed?.center?.y)
+      ) {
+        return {
+          scrollX: parsed.scrollX,
+          scrollY: parsed.scrollY,
+          zoom: parsed.zoom,
+          center: { x: parsed.center.x, y: parsed.center.y },
+        };
+      }
+    } catch {
+      // Missing or corrupt sidecar — no restore.
+    }
+    return undefined;
+  }
+
+  private async handleArrowCreated(msg: {
+    arrowId: string;
+    sourceRef: string | null;
+    targetRef: string | null;
+  }) {
+    if (this.document.uri.scheme !== "file" || this.isViewOnly()) {
+      vscode.window.showInformationMessage(
+        "Save the diagram to a workspace file to auto-link connections"
+      );
+      return;
+    }
+    try {
+      const label =
+        msg.sourceRef && msg.targetRef
+          ? `${msg.sourceRef} → ${msg.targetRef}`
+          : "Transition";
+      const { link } = await allocateArrowRef(
+        this.document.uri,
+        label,
+        this.extractName(this.document.uri)
+      );
+      this.postMessage({
+        type: "apply-element-link",
+        elementId: msg.arrowId,
+        link,
+      });
+    } catch (e) {
+      vscode.window.showErrorMessage(
+        `Failed to link connection: ${(e as Error).message}`
+      );
+    }
+  }
+
   isViewOnly() {
     return (
       this.document.uri.scheme === "git" ||
@@ -185,6 +311,14 @@ export class ExcalidrawEditor {
           case "info":
             vscode.window.showInformationMessage(msg.content);
             break;
+          case "arrow-created":
+            await this.handleArrowCreated(msg);
+            break;
+          case "viewport":
+            if (this.document.uri.scheme === "file" && !this.isViewOnly()) {
+              this.scheduleViewportWrite(msg);
+            }
+            break;
         }
       },
       this
@@ -211,6 +345,22 @@ export class ExcalidrawEditor {
         this.webview.postMessage({
           type: "visual-theme-change",
           visualTheme: this.getVisualTheme(),
+        });
+      }, this);
+
+    const onDidChangeCustomFeaturesConfiguration =
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (
+          !e.affectsConfiguration(
+            "excalidraw.enableCustomFeatures",
+            this.document.uri
+          )
+        ) {
+          return;
+        }
+        this.webview.postMessage({
+          type: "custom-features-change",
+          enabled: this.getEnableCustomFeatures(),
         });
       }, this);
 
@@ -310,6 +460,11 @@ export class ExcalidrawEditor {
       viewModeEnabled: this.isViewOnly() || undefined,
       theme: this.getTheme(),
       visualTheme: this.getVisualTheme(),
+      customFeaturesEnabled: this.getEnableCustomFeatures(),
+      viewport:
+        this.document.uri.scheme === "file"
+          ? await this.readViewportSidecar()
+          : undefined,
       imageParams: this.getImageParams(),
       langCode: this.getLanguage(),
       name: this.extractName(this.document.uri),
@@ -319,11 +474,18 @@ export class ExcalidrawEditor {
       onDidReceiveMessage.dispose();
       onDidChangeThemeConfiguration.dispose();
       onDidChangeVisualThemeConfiguration.dispose();
+      onDidChangeCustomFeaturesConfiguration.dispose();
       onLibraryImport.dispose();
       onDidChangeLibraryConfiguration.dispose();
       onDidChangeLibrary.dispose();
       onDidChangeEmbedConfiguration.dispose();
       watcher?.dispose();
+      // Closing the editor must leave an up-to-date sidecar for restore.
+      if (this.viewportWriteTimer) {
+        clearTimeout(this.viewportWriteTimer);
+        this.viewportWriteTimer = undefined;
+      }
+      this.flushViewportWrite();
     });
   }
 
@@ -348,6 +510,12 @@ export class ExcalidrawEditor {
     return vscode.workspace
       .getConfiguration("excalidraw")
       .get("visualTheme", "classic");
+  }
+
+  private getEnableCustomFeatures() {
+    return vscode.workspace
+      .getConfiguration("excalidraw")
+      .get("enableCustomFeatures", true);
   }
 
   public extractName(uri: vscode.Uri) {

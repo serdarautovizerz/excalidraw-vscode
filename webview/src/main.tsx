@@ -126,6 +126,8 @@ async function main() {
           viewModeEnabled={config.viewModeEnabled}
           theme={config.theme}
           visualTheme={config.visualTheme}
+          customFeaturesEnabled={config.customFeaturesEnabled ?? true}
+          initialViewport={config.viewport}
           onChange={debouncedOnChange(sendChanges)}
           sceneVersionRef={sceneVersionRef}
           imageParams={config.imageParams}

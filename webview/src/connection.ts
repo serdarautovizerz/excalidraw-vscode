@@ -17,12 +17,16 @@ export interface AnchorTarget {
 }
 
 // An in-progress connection: source anchor fixed, endpoint following the
-// pointer until it snaps to a target anchor.
+// pointer until it snaps to a target anchor. Starts in "drag" mode (arrow is
+// created on mouse release over a target anchor); a quick press-release near
+// the source anchor switches to "click" mode where a second click completes.
 export interface ConnectDraft {
   sourceId: string;
   sourceAnchor: Anchor;
   pointer: { x: number; y: number };
   target: AnchorTarget | null;
+  startedAt: number;
+  mode: "drag" | "click";
 }
 
 const CONNECTABLE_TYPES = new Set(["rectangle", "diamond", "ellipse"]);
