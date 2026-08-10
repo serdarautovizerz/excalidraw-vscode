@@ -186,6 +186,9 @@ export default function App(props: {
   } | null>(null);
   const focusHighlightTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const focusRequestedRef = useRef(false);
+  // A deep link can arrive before the canvas API exists; the ref is held here
+  // and applied once it does, rather than dropped.
+  const pendingFocusRef = useRef<string | null>(null);
   const didRestoreViewportRef = useRef(false);
 
   // Arrows already reported to the extension for ref allocation.
@@ -583,6 +586,69 @@ export default function App(props: {
     }
   }, [excalidrawAPI, featuresEnabled]);
 
+  // Scroll to an element and flag it. Shared by the focus-element message and
+  // the pending-focus replay below, so a deep link that lands before the canvas
+  // is ready behaves identically to one that lands after.
+  const applyFocus = (ref: string) => {
+    if (!excalidrawAPI) {
+      return;
+    }
+    const elements = excalidrawAPI.getSceneElements();
+    const matched = elements.filter(
+      (element: any) =>
+        element.id === ref ||
+        (typeof element.link === "string" &&
+          (element.link === `elements/${ref}.md` ||
+            element.link.endsWith(`/${ref}.md`)))
+    );
+    if (matched.length === 0) {
+      vscode.postMessage({
+        type: "info",
+        content: `Element "${ref}" was not found in this diagram`,
+      });
+      return;
+    }
+    if (featuresEnabled) {
+      // Transient highlight instead of selection, so the left style
+      // island stays closed (item 6).
+      if (focusHighlightTimerRef.current) {
+        clearTimeout(focusHighlightTimerRef.current);
+      }
+      setFocusHighlight({
+        ids: matched.map((element: any) => element.id),
+        key: Date.now(),
+      });
+      focusHighlightTimerRef.current = setTimeout(() => {
+        focusHighlightTimerRef.current = undefined;
+        setFocusHighlight(null);
+      }, FOCUS_HIGHLIGHT_MS);
+    } else {
+      excalidrawAPI.updateScene({
+        appState: {
+          selectedElementIds: Object.fromEntries(
+            matched.map((element: any) => [element.id, true])
+          ),
+        },
+        captureUpdate: CaptureUpdateAction.NEVER,
+      });
+    }
+    excalidrawAPI.scrollToContent(matched, {
+      fitToViewport: false,
+      animate: true,
+      duration: 300,
+    });
+  };
+
+  // Replay a deep link that arrived before the canvas API existed.
+  useEffect(() => {
+    const ref = pendingFocusRef.current;
+    if (!excalidrawAPI || !ref) {
+      return;
+    }
+    pendingFocusRef.current = null;
+    applyFocus(ref);
+  }, [excalidrawAPI, featuresEnabled]);
+
   // One-shot viewport restore (item 14) + initial viewport report. Deep-link
   // focus wins: if focus-element already arrived, restore is skipped.
   useEffect(() => {
@@ -590,26 +656,31 @@ export default function App(props: {
       return;
     }
     didRestoreViewportRef.current = true;
-    reportViewport();
-    if (
-      !props.initialViewport ||
-      !featuresEnabled ||
-      focusRequestedRef.current
-    ) {
-      return;
+    const willRestore =
+      !!props.initialViewport &&
+      featuresEnabled &&
+      !focusRequestedRef.current;
+    if (willRestore) {
+      const appState = excalidrawAPI.getAppState();
+      const width = appState.width || window.innerWidth;
+      const height = appState.height || window.innerHeight;
+      const { zoom, center } = props.initialViewport!;
+      excalidrawAPI.updateScene({
+        appState: {
+          scrollX: width / 2 / zoom - center.x,
+          scrollY: height / 2 / zoom - center.y,
+          zoom: { value: zoom },
+        } as any,
+        captureUpdate: CaptureUpdateAction.NEVER,
+      });
     }
-    const appState = excalidrawAPI.getAppState();
-    const width = appState.width || window.innerWidth;
-    const height = appState.height || window.innerHeight;
-    const { zoom, center } = props.initialViewport;
-    excalidrawAPI.updateScene({
-      appState: {
-        scrollX: width / 2 / zoom - center.x,
-        scrollY: height / 2 / zoom - center.y,
-        zoom: { value: zoom },
-      } as any,
-      captureUpdate: CaptureUpdateAction.NEVER,
-    });
+    // Report only once the viewport is final. Reporting the default viewport
+    // while a saved one exists would overwrite the sidecar with 0,0 — the way
+    // a reopen used to destroy the position it was supposed to restore. When a
+    // focus is pending, that focus reports the viewport it lands on.
+    if (willRestore || !props.initialViewport) {
+      reportViewport();
+    }
   }, [excalidrawAPI]);
 
   useEffect(() => {
@@ -747,54 +818,14 @@ export default function App(props: {
           }
           case "focus-element": {
             focusRequestedRef.current = true;
-            if (!excalidrawAPI) {
-              return;
-            }
             const ref: string = message.ref;
-            const elements = excalidrawAPI.getSceneElements();
-            const matched = elements.filter(
-              (element: any) =>
-                element.id === ref ||
-                (typeof element.link === "string" &&
-                  (element.link === `elements/${ref}.md` ||
-                    element.link.endsWith(`/${ref}.md`)))
-            );
-            if (matched.length === 0) {
-              vscode.postMessage({
-                type: "info",
-                content: `Element "${ref}" was not found in this diagram`,
-              });
+            if (!excalidrawAPI) {
+              // Hold it: dropping the link here also left viewport restore
+              // permanently suppressed for this mount.
+              pendingFocusRef.current = ref;
               return;
             }
-            if (featuresEnabled) {
-              // Transient highlight instead of selection, so the left style
-              // island stays closed (item 6).
-              if (focusHighlightTimerRef.current) {
-                clearTimeout(focusHighlightTimerRef.current);
-              }
-              setFocusHighlight({
-                ids: matched.map((element: any) => element.id),
-                key: Date.now(),
-              });
-              focusHighlightTimerRef.current = setTimeout(() => {
-                focusHighlightTimerRef.current = undefined;
-                setFocusHighlight(null);
-              }, FOCUS_HIGHLIGHT_MS);
-            } else {
-              excalidrawAPI.updateScene({
-                appState: {
-                  selectedElementIds: Object.fromEntries(
-                    matched.map((element: any) => [element.id, true])
-                  ),
-                },
-                captureUpdate: CaptureUpdateAction.NEVER,
-              });
-            }
-            excalidrawAPI.scrollToContent(matched, {
-              fitToViewport: false,
-              animate: true,
-              duration: 300,
-            });
+            applyFocus(ref);
             break;
           }
         }

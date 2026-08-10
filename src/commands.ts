@@ -103,8 +103,15 @@ async function newFile() {
   }
 }
 
+// This extension runs in the worker extension host, where `path` is the POSIX
+// browserify polyfill: it treats `C:\...` and `\\server\share` as relative.
+// Recognise Windows absolute paths ourselves before falling back to it.
+function isAbsolutePath(file: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(file) || file.startsWith("\\\\") || path.isAbsolute(file);
+}
+
 function resolveFileArg(file: string): vscode.Uri {
-  if (path.isAbsolute(file)) {
+  if (isAbsolutePath(file)) {
     return vscode.Uri.file(file);
   }
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
