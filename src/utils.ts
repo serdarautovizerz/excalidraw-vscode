@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import * as path from "path";
 
 export function getActiveWorkspace() {
   const activeEditor = vscode.window.activeTextEditor;
@@ -22,11 +21,13 @@ let runningCounter = 0;
 export async function newUntitledExcalidrawDocument() {
   runningCounter += 1;
   const ws = getActiveWorkspace();
-  let fileName = `Untitled-${runningCounter}.excalidraw`;
-  if (ws) {
-    fileName = path.join(ws.uri.fsPath, fileName);
-  }
-  const uri = vscode.Uri.parse(`untitled:${fileName}`);
+  const fileName = `Untitled-${runningCounter}.excalidraw`;
+  // Built through Uri.joinPath rather than string concatenation: the bundle's
+  // `path` is POSIX-only, so joining onto a backslashed fsPath produced a
+  // mixed-separator path.
+  const uri = ws
+    ? vscode.Uri.joinPath(ws.uri, fileName).with({ scheme: "untitled" })
+    : vscode.Uri.parse(`untitled:${fileName}`);
   await vscode.commands.executeCommand(
     "vscode.openWith",
     uri,

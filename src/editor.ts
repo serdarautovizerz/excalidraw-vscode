@@ -433,11 +433,14 @@ export class ExcalidrawEditor {
       this.document.contentType === "application/json" &&
       !this.isViewOnly()
     ) {
+      const base = vscode.Uri.joinPath(this.document.uri, "..");
+      // uri.path is always forward-slashed. fsPath is not, and the bundle
+      // resolves `path` to path-browserify (POSIX), whose basename ignores
+      // backslashes — on Windows it would hand back the whole path, producing
+      // a pattern that matches nothing and a watcher that never fires.
+      const glob = path.basename(this.document.uri.path);
       watcher = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(
-          vscode.Uri.joinPath(this.document.uri, ".."),
-          path.basename(this.document.uri.fsPath)
-        )
+        new vscode.RelativePattern(base, glob)
       );
       watcher.onDidChange(async () => {
         const content = await vscode.workspace.fs.readFile(this.document.uri);
@@ -519,7 +522,9 @@ export class ExcalidrawEditor {
   }
 
   public extractName(uri: vscode.Uri) {
-    const name = path.parse(uri.fsPath).name;
+    // uri.path, not uri.fsPath — the bundle's `path` is POSIX-only, so a
+    // backslashed Windows path parses as one giant basename.
+    const name = path.parse(uri.path).name;
     return name.endsWith(".excalidraw") ? name.slice(0, -11) : name;
   }
 
