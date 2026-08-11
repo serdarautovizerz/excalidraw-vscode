@@ -676,26 +676,29 @@ export default function App(props: {
       featuresEnabled &&
       !focusRequestedRef.current;
     if (willRestore) {
-      const appState = excalidrawAPI.getAppState();
-      const width = appState.width || window.innerWidth;
-      const height = appState.height || window.innerHeight;
-      const { zoom, center } = props.initialViewport!;
-      excalidrawAPI.updateScene({
-        appState: {
-          scrollX: width / 2 / zoom - center.x,
-          scrollY: height / 2 / zoom - center.y,
-          zoom: { value: zoom },
-        } as any,
-        captureUpdate: CaptureUpdateAction.NEVER,
+      // Defer restore to next frame so Excalidraw finishes its own
+      // internal initialization (scroll-to-content, fit-to-content, etc.)
+      // before we overwrite the viewport.
+      requestAnimationFrame(() => {
+        const appState = excalidrawAPI.getAppState();
+        const width = appState.width || window.innerWidth;
+        const height = appState.height || window.innerHeight;
+        const { zoom, center } = props.initialViewport!;
+        excalidrawAPI.updateScene({
+          appState: {
+            scrollX: width / 2 / zoom - center.x,
+            scrollY: height / 2 / zoom - center.y,
+            zoom: { value: zoom },
+          } as any,
+          captureUpdate: CaptureUpdateAction.NEVER,
+        });
+        // Enable viewport reporting now that restore has been applied.
+        canReportViewportRef.current = true;
+        reportViewport();
       });
-    }
-    // Enable viewport reporting now that restore has been attempted.
-    canReportViewportRef.current = true;
-    // Report only once the viewport is final. Reporting the default viewport
-    // while a saved one exists would overwrite the sidecar with 0,0 — the way
-    // a reopen used to destroy the position it was supposed to restore. When a
-    // focus is pending, that focus reports the viewport it lands on.
-    if (willRestore || !props.initialViewport) {
+    } else {
+      // Enable viewport reporting now that restore attempt is complete.
+      canReportViewportRef.current = true;
       reportViewport();
     }
   }, [excalidrawAPI]);
