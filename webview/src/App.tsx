@@ -177,6 +177,8 @@ export default function App(props: {
   const interactionBusyRef = useRef(false);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const contextMenuOpenRef = useRef(false);
+  const [handToolActive, setHandToolActive] = useState(false);
+  const handToolActiveRef = useRef(false);
   const zoomRef = useRef<number | null>(null);
 
   // focus-element highlight overlay (no selection → no left style island).
@@ -269,6 +271,15 @@ export default function App(props: {
       contextMenuOpenRef.current = menuOpen;
       setContextMenuOpen(menuOpen);
       if (menuOpen) {
+        clearHoverMetadata();
+        setHoverAnchorElement(null);
+      }
+    }
+    const isHandTool = appState.activeTool?.type === "hand";
+    if (isHandTool !== handToolActiveRef.current) {
+      handToolActiveRef.current = isHandTool;
+      setHandToolActive(isHandTool);
+      if (isHandTool) {
         clearHoverMetadata();
         setHoverAnchorElement(null);
       }
@@ -846,7 +857,7 @@ export default function App(props: {
   const accentColor = resolveVisualTheme(visualThemeId).accentColor;
 
   const showAnchors =
-    uxOn && !connect && !interactionBusy && !contextMenuOpen && !pointerDown;
+    uxOn && !connect && !interactionBusy && !contextMenuOpen && !pointerDown && !handToolActive;
 
   const focusHighlightZoom = excalidrawAPI
     ? excalidrawAPI.getAppState().zoom.value
