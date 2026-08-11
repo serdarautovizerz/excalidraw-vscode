@@ -221,7 +221,11 @@ export default function App(props: {
   // sidecar (MCP add_element placement + restore on reopen). Not gated by
   // enableCustomFeatures: it serves the MCP contract, not UX.
   const viewportReportTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const canReportViewportRef = useRef(false);
   const reportViewport = () => {
+    if (!canReportViewportRef.current) {
+      return;
+    }
     if (viewportReportTimerRef.current) {
       clearTimeout(viewportReportTimerRef.current);
     }
@@ -685,6 +689,8 @@ export default function App(props: {
         captureUpdate: CaptureUpdateAction.NEVER,
       });
     }
+    // Enable viewport reporting now that restore has been attempted.
+    canReportViewportRef.current = true;
     // Report only once the viewport is final. Reporting the default viewport
     // while a saved one exists would overwrite the sidecar with 0,0 — the way
     // a reopen used to destroy the position it was supposed to restore. When a
