@@ -1,446 +1,446 @@
 {
-    "name": "excalidraw-editor",
-    "icon": "assets/logo.png",
-    "displayName": "Excalidraw (AutoVizerz)",
-    "description": "Draw schemas in VS Code using Excalidraw — AutoVizerz customized fork",
-    "version": "1.0.9",
-    "publisher": "autovizerz",
-    "engines": {
-        "vscode": "^1.63.0"
-    },
-    "categories": [
-        "Visualization"
-    ],
-    "keywords": [
-        "draw",
-        "schemas",
-        "graphics",
-        "paint",
-        "excalidraw"
-    ],
-    "author": {
-        "name": "AutoVizerz",
-        "url": "https://github.com/serdarautovizerz"
-    },
-    "activationEvents": [
-        "onUri",
-        "workspaceContains:**/*.{excalidraw,excalidraw.svg,excalidraw.png}"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/serdarautovizerz/excalidraw-vscode"
-    },
-    "browser": "./dist/extension.js",
-    "contributes": {
-        "commands": [
-            {
-                "command": "excalidraw.updateTheme",
-                "category": "Excalidraw",
-                "title": "Color Theme",
-                "icon": "$(color-mode)"
-            },
-            {
-                "command": "excalidraw.newFile",
-                "category": "Excalidraw",
-                "title": "Scene",
-                "icon": "$(color-mode)"
-            },
-            {
-                "command": "excalidraw.newSceneFile",
-                "category": "Excalidraw",
-                "title": "New File",
-                "icon": "$(color-mode)"
-            },
-            {
-                "command": "excalidraw.preventDefault",
-                "category": "Excalidraw",
-                "title": "Prevent Default"
-            },
-            {
-                "command": "excalidraw.showSource",
-                "category": "Excalidraw",
-                "title": "Open Source",
-                "icon": "$(go-to-file)"
-            },
-            {
-                "command": "excalidraw.showEditor",
-                "category": "Excalidraw",
-                "title": "Open Excalidraw",
-                "icon": {
-                    "dark": "./assets/menu-icon-dark.png",
-                    "light": "./assets/menu-icon-light.png"
-                }
-            },
-            {
-                "command": "excalidraw.showImage",
-                "category": "Excalidraw",
-                "title": "Open Image",
-                "icon": "$(go-to-file)"
-            },
-            {
-                "command": "excalidraw.showSourceToSide",
-                "category": "Excalidraw",
-                "title": "Open Source to the Side",
-                "icon": "$(go-to-file)"
-            },
-            {
-                "command": "excalidraw.showEditorToSide",
-                "category": "Excalidraw",
-                "title": "Open Excalidraw to the Side",
-                "icon": {
-                    "dark": "./assets/menu-icon-dark.png",
-                    "light": "./assets/menu-icon-light.png"
-                }
-            },
-            {
-                "command": "excalidraw.showImageToSide",
-                "category": "Excalidraw",
-                "title": "Open Image to the Side",
-                "icon": "$(go-to-file)"
-            },
-            {
-                "command": "excalidraw.focusElement",
-                "category": "Excalidraw",
-                "title": "Focus Element",
-                "icon": "$(search)"
-            }
-        ],
-        "configuration": [
-            {
-                "title": "Excalidraw",
-                "properties": {
-                    "excalidraw.theme": {
-                        "description": "Excalidraw theme. Use auto to sync theme with VSCode color theme.",
-                        "type": "string",
-                        "default": "light",
-                        "enum": [
-                            "auto",
-                            "light",
-                            "dark"
-                        ]
-                    },
-                    "excalidraw.enableCustomFeatures": {
-                        "description": "Enable AutoVizerz UX features: connection anchors and quick connect, hover tooltips, native link-icon hiding, visual theme restyling, focus highlighting, and viewport restore. Deep links (focus element) and file hot reload remain active when disabled.",
-                        "type": "boolean",
-                        "default": true
-                    },
-                    "excalidraw.visualTheme": {
-                        "description": "Visual theme for diagrams: defaults applied to newly drawn elements and accent colors. Independent of light/dark (excalidraw.theme) and of interaction behavior.",
-                        "type": "string",
-                        "default": "classic",
-                        "enum": [
-                            "classic",
-                            "modern",
-                            "figjam",
-                            "autovizerz"
-                        ],
-                        "enumDescriptions": [
-                            "Upstream Excalidraw exactly as shipped",
-                            "Clean technical diagrams: thin strokes, straight text, soft corners",
-                            "Inspired by FigJam's interaction patterns — original identity, not a clone",
-                            "AutoVizerz brand look for the state-machine diagrams"
-                        ]
-                    },
-                    "excalidraw.language": {
-                        "type": "string",
-                        "description": "Language of the Excalidraw Editor. Defauts to the VS Code display language.",
-                        "enum": [
-                            "en",
-                            "ar-SA",
-                            "bg-BG",
-                            "ca-ES",
-                            "cs-CZ",
-                            "de-DE",
-                            "el-GR",
-                            "es-ES",
-                            "eu-ES",
-                            "fa-IR",
-                            "fi-FI",
-                            "fr-FR",
-                            "he-IL",
-                            "hi-IN",
-                            "hu-HU",
-                            "id-ID",
-                            "it-IT",
-                            "ja-JP",
-                            "kab-KAB",
-                            "kk-KZ",
-                            "ko-KR",
-                            "lt-LT",
-                            "lv-LV",
-                            "my-MM",
-                            "nb-NO",
-                            "nl-NL",
-                            "nn-NO",
-                            "oc-FR",
-                            "pa-IN",
-                            "pl-PL",
-                            "pt-BR",
-                            "pt-PT",
-                            "ro-RO",
-                            "ru-RU",
-                            "sk-SK",
-                            "sv-SE",
-                            "sl-SI",
-                            "tr-TR",
-                            "uk-UA",
-                            "zh-CN",
-                            "zh-TW",
-                            "vi-VN",
-                            "mr-IN"
-                        ],
-                        "enumDescriptions": [
-                            "English",
-                            "मराठी",
-                            "Tiếng Việt",
-                            "繁體中文",
-                            "简体中文",
-                            "Українська",
-                            "Türkçe",
-                            "Slovenščina",
-                            "Svenska",
-                            "Slovenčina",
-                            "Русский",
-                            "Română",
-                            "Português",
-                            "Português Brasileiro",
-                            "Polski",
-                            "ਪੰਜਾਬੀ",
-                            "Occitan",
-                            "Norsk nynorsk",
-                            "Nederlands",
-                            "Norsk bokmål",
-                            "Burmese",
-                            "Latviešu",
-                            "Lietuvių",
-                            "한국어",
-                            "Қазақ тілі",
-                            "Taqbaylit",
-                            "日本語",
-                            "Italiano",
-                            "Bahasa Indonesia",
-                            "Magyar",
-                            "हिन्दी",
-                            "עברית",
-                            "Français",
-                            "Suomi",
-                            "فارسی",
-                            "Euskara",
-                            "Español",
-                            "Ελληνικά",
-                            "Deutsch",
-                            "Česky",
-                            "Català",
-                            "Български",
-                            "العربية"
-                        ]
-                    },
-                    "excalidraw.linkOpenLocation": {
-                        "description": "Where to open workspace files referenced by element links (e.g. elements/D10.md).",
-                        "type": "string",
-                        "default": "beside",
-                        "enum": [
-                            "activeGroup",
-                            "beside"
-                        ],
-                        "enumDescriptions": [
-                            "Open linked files in the active editor group, replacing the diagram view",
-                            "Open linked files to the side, keeping the diagram visible"
-                        ]
-                    },
-                    "excalidraw.workspaceLibraryPath": {
-                        "scope": "window",
-                        "description": "Path to the file used to store the excalidraw library (relative to workspace root). If not set, the library will be persisted in the user storage.",
-                        "type": "string"
-                    },
-                    "excalidraw.image": {
-                        "description": "Settings specifics to image with embed scene.",
-                        "type": "object",
-                        "properties": {
-                            "exportScale": {
-                                "description": "Scale of the exported drawings. Higher values will result in higher quality images.",
-                                "type": "number",
-                                "default": 1,
-                                "enum": [
-                                    1,
-                                    2,
-                                    3
-                                ]
-                            },
-                            "exportWithBackground": {
-                                "description": "Indicates whether background should be exported",
-                                "type": "boolean",
-                                "default": true
-                            },
-                            "exportWithDarkMode": {
-                                "description": "Indicates whether to export with dark mode",
-                                "type": "boolean",
-                                "default": false
-                            }
-                        },
-                        "default": {
-                            "exportScale": 1,
-                            "exportWithBackground": true,
-                            "exportWithDarkMode": false
-                        }
-                    }
-                }
-            }
-        ],
-        "languages": [
-            {
-                "id": "json",
-                "extensions": [
-                    ".excalidraw",
-                    ".excalidrawlib"
-                ]
-            }
-        ],
-        "menus": {
-            "commandPalette": [
-                {
-                    "command": "excalidraw.newFile",
-                    "when": "false"
-                },
-                {
-                    "command": "excalidraw.updateTheme",
-                    "when": "activeCustomEditorId == 'editor.excalidraw'"
-                },
-                {
-                    "command": "excalidraw.preventDefault",
-                    "when": "false"
-                },
-                {
-                    "command": "excalidraw.showSource",
-                    "when": "false"
-                },
-                {
-                    "command": "excalidraw.showEditor",
-                    "when": "false"
-                },
-                {
-                    "command": "excalidraw.showImage",
-                    "when": "false"
-                },
-                {
-                    "command": "excalidraw.showSourceToSide",
-                    "when": "false"
-                },
-                {
-                    "command": "excalidraw.showEditorToSide",
-                    "when": "false"
-                },
-                {
-                    "command": "excalidraw.showImageToSide",
-                    "when": "false"
-                },
-                {
-                    "command": "excalidraw.focusElement",
-                    "when": "activeCustomEditorId == 'editor.excalidraw'"
-                }
-            ],
-            "editor/title": [
-                {
-                    "command": "excalidraw.showEditor",
-                    "alt": "excalidraw.showEditorToSide",
-                    "when": "activeCustomEditorId != 'editor.excalidraw' && resourceFilename =~ /^.+\\.excalidraw(.png|.svg)?$/",
-                    "group": "navigation"
-                },
-                {
-                    "command": "excalidraw.showSource",
-                    "alt": "excalidraw.showSourceToSide",
-                    "group": "navigation",
-                    "when": "activeCustomEditorId == 'editor.excalidraw' && resourceFilename =~ /^.+\\.excalidraw(.svg)?$/"
-                },
-                {
-                    "command": "excalidraw.showImage",
-                    "alt": "excalidraw.showImageToSide",
-                    "when": "activeCustomEditorId == 'editor.excalidraw' && resourceFilename =~ /^.+\\.excalidraw.png$/",
-                    "group": "navigation"
-                },
-                {
-                    "command": "excalidraw.updateTheme",
-                    "when": "activeCustomEditorId == 'editor.excalidraw'",
-                    "group": "navigation"
-                }
-            ],
-            "file/newFile": [
-                {
-                    "command": "excalidraw.newFile"
-                }
-            ]
-        },
-        "customEditors": [
-            {
-                "viewType": "editor.excalidraw",
-                "displayName": "Excalidraw",
-                "priority": "default",
-                "selector": [
-                    {
-                        "filenamePattern": "*.excalidraw"
-                    },
-                    {
-                        "filenamePattern": "*.excalidraw.json"
-                    },
-                    {
-                        "filenamePattern": "*.excalidraw.svg"
-                    },
-                    {
-                        "filenamePattern": "*.excalidraw.png"
-                    }
-                ]
-            }
-        ],
-        "keybindings": [
-            {
-                "command": "excalidraw.preventDefault",
-                "key": "ctrl+z",
-                "mac": "cmd+z",
-                "when": "activeCustomEditorId == 'editor.excalidraw'"
-            },
-            {
-                "command": "excalidraw.preventDefault",
-                "key": "ctrl+y",
-                "mac": "cmd+shift+z",
-                "when": "activeCustomEditorId == 'editor.excalidraw'"
-            }
-        ]
-    },
-    "scripts": {
-        "install": "cd webview && npm install",
-        "build-webview": "cd webview && npm run build",
-        "build": "npm run build-webview && webpack --mode development",
-        "package": "npm run build-webview && webpack --mode production --devtool hidden-source-map",
-        "vscode:prepublish": "npm run package",
-        "lint": "eslint --ext .ts src",
-        "prettier": "prettier --check .",
-        "prettierfix": "prettier --write .",
-        "open-in-browser": "vscode-test-web --headless --extensionDevelopmentPath=. ./examples"
-    },
-    "capabilities": {
-        "untrustedWorkspaces": {
-            "supported": true
+  "name": "excalidraw-editor",
+  "icon": "assets/logo.png",
+  "displayName": "Excalidraw (AutoVizerz)",
+  "description": "Draw schemas in VS Code using Excalidraw — AutoVizerz customized fork",
+  "version": "1.0.10",
+  "publisher": "autovizerz",
+  "engines": {
+    "vscode": "^1.63.0"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "keywords": [
+    "draw",
+    "schemas",
+    "graphics",
+    "paint",
+    "excalidraw"
+  ],
+  "author": {
+    "name": "AutoVizerz",
+    "url": "https://github.com/serdarautovizerz"
+  },
+  "activationEvents": [
+    "onUri",
+    "workspaceContains:**/*.{excalidraw,excalidraw.svg,excalidraw.png}"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/serdarautovizerz/excalidraw-vscode"
+  },
+  "browser": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "excalidraw.updateTheme",
+        "category": "Excalidraw",
+        "title": "Color Theme",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "excalidraw.newFile",
+        "category": "Excalidraw",
+        "title": "Scene",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "excalidraw.newSceneFile",
+        "category": "Excalidraw",
+        "title": "New File",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "excalidraw.preventDefault",
+        "category": "Excalidraw",
+        "title": "Prevent Default"
+      },
+      {
+        "command": "excalidraw.showSource",
+        "category": "Excalidraw",
+        "title": "Open Source",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "excalidraw.showEditor",
+        "category": "Excalidraw",
+        "title": "Open Excalidraw",
+        "icon": {
+          "dark": "./assets/menu-icon-dark.png",
+          "light": "./assets/menu-icon-light.png"
         }
+      },
+      {
+        "command": "excalidraw.showImage",
+        "category": "Excalidraw",
+        "title": "Open Image",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "excalidraw.showSourceToSide",
+        "category": "Excalidraw",
+        "title": "Open Source to the Side",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "excalidraw.showEditorToSide",
+        "category": "Excalidraw",
+        "title": "Open Excalidraw to the Side",
+        "icon": {
+          "dark": "./assets/menu-icon-dark.png",
+          "light": "./assets/menu-icon-light.png"
+        }
+      },
+      {
+        "command": "excalidraw.showImageToSide",
+        "category": "Excalidraw",
+        "title": "Open Image to the Side",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "excalidraw.focusElement",
+        "category": "Excalidraw",
+        "title": "Focus Element",
+        "icon": "$(search)"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "Excalidraw",
+        "properties": {
+          "excalidraw.theme": {
+            "description": "Excalidraw theme. Use auto to sync theme with VSCode color theme.",
+            "type": "string",
+            "default": "light",
+            "enum": [
+              "auto",
+              "light",
+              "dark"
+            ]
+          },
+          "excalidraw.enableCustomFeatures": {
+            "description": "Enable AutoVizerz UX features: connection anchors and quick connect, hover tooltips, native link-icon hiding, visual theme restyling, focus highlighting, and viewport restore. Deep links (focus element) and file hot reload remain active when disabled.",
+            "type": "boolean",
+            "default": true
+          },
+          "excalidraw.visualTheme": {
+            "description": "Visual theme for diagrams: defaults applied to newly drawn elements and accent colors. Independent of light/dark (excalidraw.theme) and of interaction behavior.",
+            "type": "string",
+            "default": "classic",
+            "enum": [
+              "classic",
+              "modern",
+              "figjam",
+              "autovizerz"
+            ],
+            "enumDescriptions": [
+              "Upstream Excalidraw exactly as shipped",
+              "Clean technical diagrams: thin strokes, straight text, soft corners",
+              "Inspired by FigJam's interaction patterns — original identity, not a clone",
+              "AutoVizerz brand look for the state-machine diagrams"
+            ]
+          },
+          "excalidraw.language": {
+            "type": "string",
+            "description": "Language of the Excalidraw Editor. Defauts to the VS Code display language.",
+            "enum": [
+              "en",
+              "ar-SA",
+              "bg-BG",
+              "ca-ES",
+              "cs-CZ",
+              "de-DE",
+              "el-GR",
+              "es-ES",
+              "eu-ES",
+              "fa-IR",
+              "fi-FI",
+              "fr-FR",
+              "he-IL",
+              "hi-IN",
+              "hu-HU",
+              "id-ID",
+              "it-IT",
+              "ja-JP",
+              "kab-KAB",
+              "kk-KZ",
+              "ko-KR",
+              "lt-LT",
+              "lv-LV",
+              "my-MM",
+              "nb-NO",
+              "nl-NL",
+              "nn-NO",
+              "oc-FR",
+              "pa-IN",
+              "pl-PL",
+              "pt-BR",
+              "pt-PT",
+              "ro-RO",
+              "ru-RU",
+              "sk-SK",
+              "sv-SE",
+              "sl-SI",
+              "tr-TR",
+              "uk-UA",
+              "zh-CN",
+              "zh-TW",
+              "vi-VN",
+              "mr-IN"
+            ],
+            "enumDescriptions": [
+              "English",
+              "मराठी",
+              "Tiếng Việt",
+              "繁體中文",
+              "简体中文",
+              "Українська",
+              "Türkçe",
+              "Slovenščina",
+              "Svenska",
+              "Slovenčina",
+              "Русский",
+              "Română",
+              "Português",
+              "Português Brasileiro",
+              "Polski",
+              "ਪੰਜਾਬੀ",
+              "Occitan",
+              "Norsk nynorsk",
+              "Nederlands",
+              "Norsk bokmål",
+              "Burmese",
+              "Latviešu",
+              "Lietuvių",
+              "한국어",
+              "Қазақ тілі",
+              "Taqbaylit",
+              "日本語",
+              "Italiano",
+              "Bahasa Indonesia",
+              "Magyar",
+              "हिन्दी",
+              "עברית",
+              "Français",
+              "Suomi",
+              "فارسی",
+              "Euskara",
+              "Español",
+              "Ελληνικά",
+              "Deutsch",
+              "Česky",
+              "Català",
+              "Български",
+              "العربية"
+            ]
+          },
+          "excalidraw.linkOpenLocation": {
+            "description": "Where to open workspace files referenced by element links (e.g. elements/D10.md).",
+            "type": "string",
+            "default": "beside",
+            "enum": [
+              "activeGroup",
+              "beside"
+            ],
+            "enumDescriptions": [
+              "Open linked files in the active editor group, replacing the diagram view",
+              "Open linked files to the side, keeping the diagram visible"
+            ]
+          },
+          "excalidraw.workspaceLibraryPath": {
+            "scope": "window",
+            "description": "Path to the file used to store the excalidraw library (relative to workspace root). If not set, the library will be persisted in the user storage.",
+            "type": "string"
+          },
+          "excalidraw.image": {
+            "description": "Settings specifics to image with embed scene.",
+            "type": "object",
+            "properties": {
+              "exportScale": {
+                "description": "Scale of the exported drawings. Higher values will result in higher quality images.",
+                "type": "number",
+                "default": 1,
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              "exportWithBackground": {
+                "description": "Indicates whether background should be exported",
+                "type": "boolean",
+                "default": true
+              },
+              "exportWithDarkMode": {
+                "description": "Indicates whether to export with dark mode",
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "default": {
+              "exportScale": 1,
+              "exportWithBackground": true,
+              "exportWithDarkMode": false
+            }
+          }
+        }
+      }
+    ],
+    "languages": [
+      {
+        "id": "json",
+        "extensions": [
+          ".excalidraw",
+          ".excalidrawlib"
+        ]
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "excalidraw.newFile",
+          "when": "false"
+        },
+        {
+          "command": "excalidraw.updateTheme",
+          "when": "activeCustomEditorId == 'editor.excalidraw'"
+        },
+        {
+          "command": "excalidraw.preventDefault",
+          "when": "false"
+        },
+        {
+          "command": "excalidraw.showSource",
+          "when": "false"
+        },
+        {
+          "command": "excalidraw.showEditor",
+          "when": "false"
+        },
+        {
+          "command": "excalidraw.showImage",
+          "when": "false"
+        },
+        {
+          "command": "excalidraw.showSourceToSide",
+          "when": "false"
+        },
+        {
+          "command": "excalidraw.showEditorToSide",
+          "when": "false"
+        },
+        {
+          "command": "excalidraw.showImageToSide",
+          "when": "false"
+        },
+        {
+          "command": "excalidraw.focusElement",
+          "when": "activeCustomEditorId == 'editor.excalidraw'"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "excalidraw.showEditor",
+          "alt": "excalidraw.showEditorToSide",
+          "when": "activeCustomEditorId != 'editor.excalidraw' && resourceFilename =~ /^.+\\.excalidraw(.png|.svg)?$/",
+          "group": "navigation"
+        },
+        {
+          "command": "excalidraw.showSource",
+          "alt": "excalidraw.showSourceToSide",
+          "group": "navigation",
+          "when": "activeCustomEditorId == 'editor.excalidraw' && resourceFilename =~ /^.+\\.excalidraw(.svg)?$/"
+        },
+        {
+          "command": "excalidraw.showImage",
+          "alt": "excalidraw.showImageToSide",
+          "when": "activeCustomEditorId == 'editor.excalidraw' && resourceFilename =~ /^.+\\.excalidraw.png$/",
+          "group": "navigation"
+        },
+        {
+          "command": "excalidraw.updateTheme",
+          "when": "activeCustomEditorId == 'editor.excalidraw'",
+          "group": "navigation"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "excalidraw.newFile"
+        }
+      ]
     },
-    "devDependencies": {
-        "@excalidraw/eslint-config": "^1.0.3",
-        "@types/node": "^18.11.0",
-        "@types/vscode": "^1.63.0",
-        "@typescript-eslint/eslint-plugin": "^5.40.0",
-        "@typescript-eslint/parser": "^5.40.0",
-        "@vscode/test-web": "*",
-        "@vscode/vsce": "^3.6.0",
-        "eslint": "^8.25.0",
-        "eslint-config-prettier": "^8.5.0",
-        "eslint-plugin-prettier": "^4.2.1",
-        "prettier": "^2.7.1",
-        "ts-loader": "^9.4.1",
-        "typescript": "^4.8.4",
-        "webpack": "^5.74.0",
-        "webpack-cli": "^4.10.0"
-    },
-    "dependencies": {
-        "js-base64": "^3.7.2",
-        "path-browserify": "^1.0.1"
+    "customEditors": [
+      {
+        "viewType": "editor.excalidraw",
+        "displayName": "Excalidraw",
+        "priority": "default",
+        "selector": [
+          {
+            "filenamePattern": "*.excalidraw"
+          },
+          {
+            "filenamePattern": "*.excalidraw.json"
+          },
+          {
+            "filenamePattern": "*.excalidraw.svg"
+          },
+          {
+            "filenamePattern": "*.excalidraw.png"
+          }
+        ]
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "excalidraw.preventDefault",
+        "key": "ctrl+z",
+        "mac": "cmd+z",
+        "when": "activeCustomEditorId == 'editor.excalidraw'"
+      },
+      {
+        "command": "excalidraw.preventDefault",
+        "key": "ctrl+y",
+        "mac": "cmd+shift+z",
+        "when": "activeCustomEditorId == 'editor.excalidraw'"
+      }
+    ]
+  },
+  "scripts": {
+    "install": "cd webview && npm install",
+    "build-webview": "cd webview && npm run build",
+    "build": "npm run build-webview && webpack --mode development",
+    "package": "npm run build-webview && webpack --mode production --devtool hidden-source-map",
+    "vscode:prepublish": "npm run package",
+    "lint": "eslint --ext .ts src",
+    "prettier": "prettier --check .",
+    "prettierfix": "prettier --write .",
+    "open-in-browser": "vscode-test-web --headless --extensionDevelopmentPath=. ./examples"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
     }
+  },
+  "devDependencies": {
+    "@excalidraw/eslint-config": "^1.0.3",
+    "@types/node": "^18.11.0",
+    "@types/vscode": "^1.63.0",
+    "@typescript-eslint/eslint-plugin": "^5.40.0",
+    "@typescript-eslint/parser": "^5.40.0",
+    "@vscode/test-web": "*",
+    "@vscode/vsce": "^3.6.0",
+    "eslint": "^8.25.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "^2.7.1",
+    "ts-loader": "^9.4.1",
+    "typescript": "^4.8.4",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "dependencies": {
+    "js-base64": "^3.7.2",
+    "path-browserify": "^1.0.1"
+  }
 }
