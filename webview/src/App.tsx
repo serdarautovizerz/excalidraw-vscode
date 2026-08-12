@@ -71,6 +71,33 @@ function refFromLink(link: string): string | null {
   return match ? match[1] : null;
 }
 
+// Bounding box for the focus highlight. Linear elements (arrow, line,
+// freedraw) anchor x/y at their FIRST point, and later points may run
+// negative, so x/y is not the top-left corner — taking width/height off it
+// draws the box mirrored into empty space. Shapes have no points and are
+// already top-left anchored.
+function focusBounds(element: any) {
+  const points: [number, number][] | undefined = element.points;
+  if (!points || points.length === 0) {
+    return {
+      x: element.x,
+      y: element.y,
+      width: element.width,
+      height: element.height,
+    };
+  }
+  const xs = points.map((point) => point[0]);
+  const ys = points.map((point) => point[1]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  return {
+    x: element.x + minX,
+    y: element.y + minY,
+    width: Math.max(...xs) - minX,
+    height: Math.max(...ys) - minY,
+  };
+}
+
 function detectTheme() {
   switch (document.body.className) {
     case "vscode-dark":
@@ -353,12 +380,15 @@ export default function App(props: {
     const boundText = (elements as readonly any[]).find(
       (element) => element.type === "text" && element.containerId === hovered.id
     );
+    // focusBounds, not raw x/width: an arrow's x anchors at its first point,
+    // so x + width overshoots the right edge when the arrow runs leftward.
+    const bounds = focusBounds(hovered);
     setHoverMetadata({
       ref,
       label: boundText ? boundText.text : null,
       link: hovered.link,
-      x: (hovered.x + hovered.width + appState.scrollX) * zoom + 8,
-      y: (hovered.y + appState.scrollY) * zoom,
+      x: (bounds.x + bounds.width + appState.scrollX) * zoom + 8,
+      y: (bounds.y + appState.scrollY) * zoom,
     });
   };
 
@@ -975,7 +1005,8 @@ export default function App(props: {
           if (!element) {
             return null;
           }
-          const pos = toViewport({ x: element.x, y: element.y });
+          const bounds = focusBounds(element);
+          const pos = toViewport({ x: bounds.x, y: bounds.y });
           return (
             <div
               key={`${focusHighlight.key}-${id}`}
@@ -983,8 +1014,8 @@ export default function App(props: {
               style={{
                 left: pos.x,
                 top: pos.y,
-                width: element.width * focusHighlightZoom,
-                height: element.height * focusHighlightZoom,
+                width: bounds.width * focusHighlightZoom,
+                height: bounds.height * focusHighlightZoom,
                 transform: element.angle
                   ? `rotate(${element.angle}rad)`
                   : undefined,
