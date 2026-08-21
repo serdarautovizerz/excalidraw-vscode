@@ -235,11 +235,14 @@ export const VISUAL_THEMES: Record<VisualThemeId, VisualTheme> = {
         roundness: { type: 2 },
         endArrowhead: "arrow",
       },
-      // Every label in Cascadia (mono); only transition labels are smaller.
+      // Every label in Cascadia (mono): element labels 18px, transition labels
+      // 16px; free-standing text keeps its own size.
       text: { strokeColor: "#4f5d75", fontFamily: 3 },
       textByContainer: {
+        rectangle: { fontSize: 18 },
+        diamond: { fontSize: 18 },
+        ellipse: { strokeColor: "#f5f5f5", fontSize: 18 },
         arrow: { fontSize: 16 },
-        ellipse: { strokeColor: "#f5f5f5" },
       },
     },
   },
