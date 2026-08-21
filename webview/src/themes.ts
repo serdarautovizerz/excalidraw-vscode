@@ -198,7 +198,7 @@ export const VISUAL_THEMES: Record<VisualThemeId, VisualTheme> = {
     currentItem: {
       currentItemRoundness: "round",
       currentItemStrokeWidth: 2,
-      currentItemFontFamily: 2,
+      currentItemFontFamily: 3,
       currentItemArrowType: "round",
       currentItemStrokeColor: "#4f5d75",
       currentItemBackgroundColor: "#ffffff",
@@ -235,9 +235,10 @@ export const VISUAL_THEMES: Record<VisualThemeId, VisualTheme> = {
         roundness: { type: 2 },
         endArrowhead: "arrow",
       },
-      text: { strokeColor: "#4f5d75", fontFamily: 2 },
+      // Every label in Cascadia (mono); only transition labels are smaller.
+      text: { strokeColor: "#4f5d75", fontFamily: 3 },
       textByContainer: {
-        arrow: { fontFamily: 3, fontSize: 16 },
+        arrow: { fontSize: 16 },
         ellipse: { strokeColor: "#f5f5f5" },
       },
     },
