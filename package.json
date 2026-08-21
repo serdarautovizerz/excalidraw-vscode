@@ -3,7 +3,7 @@
   "icon": "assets/logo.png",
   "displayName": "Excalidraw (AutoVizerz)",
   "description": "Draw schemas in VS Code using Excalidraw — AutoVizerz customized fork",
-  "version": "1.0.10",
+  "version": "1.0.17",
   "publisher": "autovizerz",
   "engines": {
     "vscode": "^1.63.0"
@@ -120,7 +120,12 @@
             ]
           },
           "excalidraw.enableCustomFeatures": {
-            "description": "Enable AutoVizerz UX features: connection anchors and quick connect, hover tooltips, native link-icon hiding, visual theme restyling, focus highlighting, and viewport restore. Deep links (focus element) and file hot reload remain active when disabled.",
+            "description": "Enable AutoVizerz UX features: connection anchors and quick connect, hover tooltips, native link-icon hiding, visual theme restyling, focus highlighting, unconnected-arrow highlighting, and viewport restore. Deep links (focus element) and file hot reload remain active when disabled.",
+            "type": "boolean",
+            "default": true
+          },
+          "excalidraw.highlightUnconnectedArrows": {
+            "description": "Render arrows that are missing a source or a target binding in red. Display-only: the arrow keeps its own stroke color in the file. Requires excalidraw.enableCustomFeatures. Exported images (.excalidraw.png/.svg documents) show the highlight too while it is enabled.",
             "type": "boolean",
             "default": true
           },
@@ -132,13 +137,15 @@
               "classic",
               "modern",
               "figjam",
-              "autovizerz"
+              "autovizerz",
+              "cath"
             ],
             "enumDescriptions": [
               "Upstream Excalidraw exactly as shipped",
               "Clean technical diagrams: thin strokes, straight text, soft corners",
               "Inspired by FigJam's interaction patterns — original identity, not a clone",
-              "AutoVizerz brand look for the state-machine diagrams"
+              "AutoVizerz brand look for the state-machine diagrams",
+              "Editorial look after diagram-design: hairline ink strokes, white cards on white-smoke paper, mono transition labels, one tangerine accent"
             ]
           },
           "excalidraw.language": {

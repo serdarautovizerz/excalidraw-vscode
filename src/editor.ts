@@ -364,6 +364,22 @@ export class ExcalidrawEditor {
         });
       }, this);
 
+    const onDidChangeUnconnectedArrowsConfiguration =
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (
+          !e.affectsConfiguration(
+            "excalidraw.highlightUnconnectedArrows",
+            this.document.uri
+          )
+        ) {
+          return;
+        }
+        this.webview.postMessage({
+          type: "unconnected-arrows-change",
+          enabled: this.getHighlightUnconnectedArrows(),
+        });
+      }, this);
+
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration("excalidraw.language", this.document.uri)) {
         return;
@@ -464,6 +480,7 @@ export class ExcalidrawEditor {
       theme: this.getTheme(),
       visualTheme: this.getVisualTheme(),
       customFeaturesEnabled: this.getEnableCustomFeatures(),
+      highlightUnconnectedArrows: this.getHighlightUnconnectedArrows(),
       viewport:
         this.document.uri.scheme === "file"
           ? await this.readViewportSidecar()
@@ -478,6 +495,7 @@ export class ExcalidrawEditor {
       onDidChangeThemeConfiguration.dispose();
       onDidChangeVisualThemeConfiguration.dispose();
       onDidChangeCustomFeaturesConfiguration.dispose();
+      onDidChangeUnconnectedArrowsConfiguration.dispose();
       onLibraryImport.dispose();
       onDidChangeLibraryConfiguration.dispose();
       onDidChangeLibrary.dispose();
@@ -519,6 +537,12 @@ export class ExcalidrawEditor {
     return vscode.workspace
       .getConfiguration("excalidraw")
       .get("enableCustomFeatures", true);
+  }
+
+  private getHighlightUnconnectedArrows() {
+    return vscode.workspace
+      .getConfiguration("excalidraw")
+      .get("highlightUnconnectedArrows", true);
   }
 
   public extractName(uri: vscode.Uri) {

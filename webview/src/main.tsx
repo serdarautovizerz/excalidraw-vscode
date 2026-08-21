@@ -9,6 +9,7 @@ import { Base64 } from "js-base64";
 
 import App from "./App";
 import { sendChangesToVSCode, vscode } from "./vscode.ts";
+import { applyUnconnectedArrowHighlight } from "./unconnected.ts";
 import {
   AppState,
   BinaryFiles,
@@ -100,6 +101,13 @@ async function main() {
     };
 
     const sendChanges = sendChangesToVSCode(config.contentType);
+
+    // Arm the renderer switch before the first paint so unconnected arrows
+    // come up red instead of flashing black and re-rendering.
+    applyUnconnectedArrowHighlight(
+      (config.customFeaturesEnabled ?? true) &&
+        (config.highlightUnconnectedArrows ?? true)
+    );
     const debouncedOnChange = (
       onChange: (
         elements: readonly any[],
@@ -127,6 +135,7 @@ async function main() {
           theme={config.theme}
           visualTheme={config.visualTheme}
           customFeaturesEnabled={config.customFeaturesEnabled ?? true}
+          highlightUnconnectedArrows={config.highlightUnconnectedArrows ?? true}
           initialViewport={config.viewport}
           onChange={debouncedOnChange(sendChanges)}
           sceneVersionRef={sceneVersionRef}

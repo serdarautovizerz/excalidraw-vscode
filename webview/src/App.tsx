@@ -35,6 +35,8 @@ import {
 } from "./connection.ts";
 import { ConnectionLayer } from "./ConnectionLayer.tsx";
 import { linkedElementAt } from "./hittest.ts";
+import { applyUnconnectedArrowHighlight } from "./unconnected.ts";
+import { refitThemedText } from "./textfit.ts";
 import {
   applyVisualThemeToElements,
   resolveVisualTheme,
@@ -151,6 +153,7 @@ export default function App(props: {
   theme: string;
   visualTheme: string;
   customFeaturesEnabled: boolean;
+  highlightUnconnectedArrows: boolean;
   initialViewport?: ViewportRestore;
   langCode: string;
   viewModeEnabled: boolean;
@@ -183,6 +186,9 @@ export default function App(props: {
   const [visualThemeId, setVisualThemeId] = useState(props.visualTheme);
   const [featuresEnabled, setFeaturesEnabled] = useState(
     props.customFeaturesEnabled
+  );
+  const [highlightUnconnected, setHighlightUnconnected] = useState(
+    props.highlightUnconnectedArrows
   );
   // Upstream item defaults captured before the first themed override, so the
   // classic theme can restore them exactly instead of guessing.
@@ -596,12 +602,18 @@ export default function App(props: {
         currentItemArrowType: appState.currentItemArrowType,
         currentItemStrokeColor: appState.currentItemStrokeColor,
         currentItemBackgroundColor: appState.currentItemBackgroundColor,
+        // Document background as loaded, so a theme that paints its own
+        // "paper" (canvasBackground) hands the original back on the way out.
+        viewBackgroundColor: appState.viewBackgroundColor,
       };
     }
     excalidrawAPI.updateScene({
       appState: {
         ...baselineItemDefaultsRef.current,
         ...visualTheme.currentItem,
+        ...(visualTheme.canvasBackground
+          ? { viewBackgroundColor: visualTheme.canvasBackground }
+          : {}),
       } as any,
     });
     const styled = applyVisualThemeToElements(
@@ -615,7 +627,63 @@ export default function App(props: {
       });
       excalidrawAPI.refresh();
     }
+    // Themed labels may now use a different font than they were measured
+    // with (also true for files themed by the MCP before they were opened) —
+    // re-measure so nothing renders clipped. See textfit.ts.
+    if (featuresEnabled) {
+      void refitThemedText(excalidrawAPI);
+    }
   }, [excalidrawAPI, visualThemeId, featuresEnabled]);
+
+  // Unconnected-arrow highlight: flip the renderer switch (see unconnected.ts
+  // and the vite patch), then hand Excalidraw fresh arrow objects so its
+  // per-object shape caches regenerate with the new stroke. Versions and
+  // nonces are untouched, so nothing is reported as a document change.
+  useEffect(() => {
+    applyUnconnectedArrowHighlight(featuresEnabled && highlightUnconnected);
+    if (!excalidrawAPI) {
+      return;
+    }
+    const elements =
+      excalidrawAPI.getSceneElementsIncludingDeleted() as readonly any[];
+    if (!elements.some((element) => element.type === "arrow")) {
+      return;
+    }
+    excalidrawAPI.updateScene({
+      elements: elements.map((element) =>
+        element.type === "arrow" ? { ...element } : element
+      ),
+      captureUpdate: CaptureUpdateAction.NEVER,
+    });
+    excalidrawAPI.refresh();
+  }, [excalidrawAPI, featuresEnabled, highlightUnconnected]);
+
+  // Themed arrowhead geometry (render-only): publish the active theme's
+  // chevron size/angle for the patched getArrowheadSize/Angle (see
+  // webview/vite.config.ts), then hand Excalidraw fresh arrow objects so the
+  // cached shapes regenerate — same trick as the unconnected highlight above.
+  useEffect(() => {
+    const arrowhead = featuresEnabled
+      ? resolveVisualTheme(visualThemeId).arrowhead
+      : undefined;
+    (globalThis as any).__AV_ARROWHEAD_SIZE = arrowhead?.size;
+    (globalThis as any).__AV_ARROWHEAD_ANGLE = arrowhead?.angle;
+    if (!excalidrawAPI) {
+      return;
+    }
+    const elements =
+      excalidrawAPI.getSceneElementsIncludingDeleted() as readonly any[];
+    if (!elements.some((element) => element.type === "arrow")) {
+      return;
+    }
+    excalidrawAPI.updateScene({
+      elements: elements.map((element) =>
+        element.type === "arrow" ? { ...element } : element
+      ),
+      captureUpdate: CaptureUpdateAction.NEVER,
+    });
+    excalidrawAPI.refresh();
+  }, [excalidrawAPI, featuresEnabled, visualThemeId]);
 
   // Feature gate turned off mid-session: drop every transient overlay and
   // restore the native link icons (the vite build patches Excalidraw to honor
@@ -797,6 +865,10 @@ export default function App(props: {
             setFeaturesEnabled(message.enabled);
             break;
           }
+          case "unconnected-arrows-change": {
+            setHighlightUnconnected(message.enabled);
+            break;
+          }
           case "language-change": {
             setLangCode(message.langCode);
             break;
@@ -839,6 +911,7 @@ export default function App(props: {
                 });
                 excalidrawAPI.refresh();
               }
+              void refitThemedText(excalidrawAPI);
             }
             break;
           }
