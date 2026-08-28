@@ -530,7 +530,7 @@ export class ExcalidrawEditor {
   private getVisualTheme() {
     return vscode.workspace
       .getConfiguration("excalidraw")
-      .get("visualTheme", "classic");
+      .get("visualTheme", "cath");
   }
 
   private getEnableCustomFeatures() {

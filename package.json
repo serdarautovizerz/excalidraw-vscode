@@ -3,7 +3,7 @@
   "icon": "assets/logo.png",
   "displayName": "Excalidraw (AutoVizerz)",
   "description": "Draw schemas in VS Code using Excalidraw — AutoVizerz customized fork",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "publisher": "autovizerz",
   "engines": {
     "vscode": "^1.63.0"
@@ -132,7 +132,7 @@
           "excalidraw.visualTheme": {
             "description": "Visual theme for diagrams: defaults applied to newly drawn elements and accent colors. Independent of light/dark (excalidraw.theme) and of interaction behavior.",
             "type": "string",
-            "default": "classic",
+            "default": "cath",
             "enum": [
               "classic",
               "modern",
